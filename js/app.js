@@ -439,6 +439,7 @@ function advanceBackground() {
 
 function showBackground(item) {
   currentBackground = item;
+  recordBackgroundImpression(item.file); // para el reporte de impresiones (ver stats.html)
   const src = CONFIG.backgroundsDirUrl + encodeURIComponent(item.file);
 
   if (item.type === "video") {

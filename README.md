@@ -12,6 +12,8 @@ a suscribirse.
 index.html            página principal (la que se carga en OBS)
 css/style.css          estilos
 js/app.js               lógica: playlist, reproductor, noticias, fondos, QR
+js/impressions.js        registro de impresiones de /backgrounds (localStorage)
+stats.html              panel para ver/exportar las impresiones de publicidad
 music/                 poné acá tus archivos de audio (mp3, m4a, ogg, wav, flac)
 music/playlist.json     lista de canciones (se autogenera con el script)
 news/news.json          lista de noticias a mostrar
@@ -191,6 +193,22 @@ python3 scripts/generate_backgrounds_playlist.py
   que la página funcione.
 - El tiempo que queda cada imagen se ajusta en `js/app.js` → `CONFIG` →
   `backgroundImageDurationMs`.
+
+### Contar impresiones (para reportarle a un sponsor)
+
+Cada vez que un archivo de `/backgrounds` pasa a mostrarse, queda
+registrado. Para ver cuántas veces se mostró cada uno, abrí
+**[`stats.html`](stats.html)** — muestra una tabla ordenada por
+impresiones, con botón para descargar un CSV y para reiniciar el
+período (por ejemplo, una vez por semana, para armar el reporte y
+arrancar el conteo de nuevo desde cero). Los períodos ya cerrados
+quedan guardados abajo, en "Períodos anteriores".
+
+**Importante**: como el sitio es estático (sin backend), este conteo
+se guarda en el `localStorage` del navegador — es decir, en la PC
+donde efectivamente corre la fuente de OBS. Para consultarlo hay que
+abrir `stats.html` en esa misma PC (mismo navegador/perfil); no se ve
+desde otra computadora.
 
 ## 4. Popup de suscripción
 

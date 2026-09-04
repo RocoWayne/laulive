@@ -4,10 +4,11 @@
 // ============================================================
 
 const CONFIG = {
-  musicDirUrl: "music/",              // se auto-escanea (listado de directorio del server)
-  playlistUrl: "music/playlist.json", // opcional: solo para overrides de titulo/artista
+  musicScanUrl: "music/playlist.php", // metodo principal: escanea /music en vivo (requiere PHP)
+  musicDirUrl: "music/",              // respaldo: listado de directorio del server (sin PHP)
+  playlistUrl: "music/playlist.json", // overrides de titulo/artista + respaldo si no hay PHP ni listado
   newsUrl: "news/news.json",
-  playlistRefreshMs: 2 * 60 * 1000,   // re-escanear /music cada 2 min
+  playlistRefreshMs: 2 * 60 * 1000,   // re-chequear /music cada 2 min
   newsRefreshMs: 3 * 60 * 1000,       // releer news.json cada 3 min
   newsIntervalMs: 6 * 60 * 1000,      // mostrar una noticia cada 6 min
   newsDisplayMs: 25 * 1000,           // cuánto queda visible cada noticia
@@ -92,11 +93,26 @@ async function scanMusicDirectory() {
   }
 }
 
-// playlist.json (generado por scripts/generate_playlist.py) es la fuente
-// PRINCIPAL de la playlist: funciona en cualquier hosting, incluido
-// WordPress, donde el listado automático de directorio suele estar
-// deshabilitado. Devuelve tanto la lista de archivos como overrides de
-// título/artista para cada uno.
+// Metodo PRINCIPAL: music/playlist.php escanea la carpeta /music en
+// vivo, en cada request (ver ese archivo). Funciona en cualquier
+// hosting con PHP, WordPress incluido, sin depender de que el server
+// liste directorios ni de correr ningun script a mano: basta con subir
+// o borrar mp3s en /music.
+async function loadPlaylistFromPhp() {
+  try {
+    const res = await fetch(CONFIG.musicScanUrl + "?t=" + Date.now());
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!Array.isArray(data)) return null;
+    return data.filter((t) => t && t.file);
+  } catch {
+    return null; // PHP no disponible en este hosting (ej. server estatico local)
+  }
+}
+
+// Metodo de RESPALDO (sin PHP): playlist.json generado a mano con
+// scripts/generate_playlist.py. Devuelve tanto la lista de archivos
+// como overrides de titulo/artista para cada uno.
 async function loadDeclaredPlaylist() {
   try {
     const res = await fetch(CONFIG.playlistUrl + "?t=" + Date.now());
@@ -118,14 +134,27 @@ async function loadDeclaredPlaylist() {
 }
 
 async function loadPlaylist() {
+  const phpTracks = await loadPlaylistFromPhp();
+  if (phpTracks && phpTracks.length > 0) {
+    playlist = phpTracks.map((t) => {
+      const parsed = titleFromFilename(t.file);
+      return {
+        file: t.file,
+        title: t.title || parsed.title,
+        artist: t.artist || parsed.artist,
+      };
+    });
+    return;
+  }
+
   const declared = await loadDeclaredPlaylist();
   let sourceFiles = Object.keys(declared);
 
-  // Fallback SOLO para pruebas locales: si playlist.json todavía no fue
-  // generado (o está vacío), intentamos auto-escanear /music. Esto
-  // requiere que el servidor liste directorios (funciona con
-  // `python3 -m http.server`), algo que la mayoría de los hostings de
-  // producción (WordPress incluido) tienen deshabilitado.
+  // Fallback SOLO para pruebas locales sin PHP: si playlist.json
+  // todavia no fue generado (o esta vacio), intentamos auto-escanear
+  // /music. Esto requiere que el servidor liste directorios (funciona
+  // con `python3 -m http.server`), algo que casi ningun hosting de
+  // produccion tiene habilitado.
   if (sourceFiles.length === 0) {
     sourceFiles = await scanMusicDirectory();
   }

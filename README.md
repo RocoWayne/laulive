@@ -21,6 +21,9 @@ HOSTING.md               guía de hosting en WordPress y protección de acceso
 
 ## 1. Cargar canciones
 
+Esta página está pensada hoy para **GitHub Pages** (hosting estático:
+no ejecuta PHP ni permite listar carpetas), así que el flujo es:
+
 **Paso obligatorio cada vez que agregás o sacás archivos de `music/`:**
 
 1. Copiá tus archivos de audio a la carpeta `music/` (mp3, m4a, ogg, wav
@@ -36,21 +39,20 @@ HOSTING.md               guía de hosting en WordPress y protección de acceso
 3. Nombralos idealmente como `Artista - Título.mp3` para que el
    reproductor detecte artista y título solo. Si no, se usa el nombre
    del archivo entero como título.
-4. La página relee `playlist.json` sola cada 2 minutos, así que no hace
+4. Commiteá y pusheá — GitHub Pages se actualiza solo con cada push.
+5. La página relee `playlist.json` sola cada 2 minutos, así que no hace
    falta tocar OBS ni reiniciar nada para que los temas nuevos empiecen
    a sonar (la canción que está sonando en ese momento no se corta).
-5. Volver a correr el script es seguro en cualquier momento: **no pisa**
+6. Volver a correr el script es seguro en cualquier momento: **no pisa**
    títulos/artistas que ya hayas corregido a mano, solo agrega los
    archivos nuevos y saca los que borraste.
 
-> ¿Por qué no escanea la carpeta sola, sin el script? Probamos esa
-> variante, pero depende de que el servidor tenga habilitado el listado
-> de directorios — funciona con `python3 -m http.server` para pruebas
-> locales, pero la mayoría de los hostings de producción (WordPress
-> incluido) lo tienen deshabilitado por seguridad. Por eso
-> `playlist.json` es ahora la fuente principal y confiable en cualquier
-> lado; el auto-escaneo de directorio quedó solo como respaldo para
-> cuando `playlist.json` está vacío.
+> **Sobre `music/playlist.php`**: existe en el repo un endpoint PHP que
+> escanea `/music` solo, en tiempo real, sin necesitar el paso 2 — pero
+> **solo funciona en un hosting con PHP** (como el de WordPress), no en
+> GitHub Pages. Por ahora queda ahí sin usarse (en GitHub Pages se
+> ignora solo, no rompe nada) para cuando llegue el momento de migrar a
+> ese hosting. Más detalle en [`HOSTING.md`](HOSTING.md).
 
 ### Corregir título/artista manualmente
 
@@ -113,31 +115,50 @@ python3 -m http.server 8080
 Y abrís `http://localhost:8080/index.html` en el navegador para
 probarlo antes de meterlo en OBS.
 
-## 4. Agregarlo en OBS
+## 4. Publicarlo en GitHub Pages
 
-1. Dejá corriendo el servidor local (`python3 -m http.server 8080`),
-   idealmente como tarea que arranque con la PC de streaming.
-2. En OBS: **Fuentes → Agregar → Fuente de navegador**.
-3. URL: `http://localhost:8080/index.html`
-4. Ancho/alto: `1920x1080` (o el tamaño de tu escena).
-5. Marcá **"Controlar audio a través de OBS"** para poder mezclar el
+Esta es la forma en la que estamos usando el proyecto por ahora, así
+no depende de tener un servidor corriendo en la PC de streaming:
+
+1. En GitHub, andá a **Settings → Pages** del repositorio.
+2. En "Build and deployment" → **Source**, elegí **Deploy from a
+   branch**.
+3. Elegí la rama con el código (esta rama, o `main` si mergeaste ahí)
+   y carpeta `/ (root)`.
+4. Guardá. GitHub te va a dar una URL tipo
+   `https://tu-usuario.github.io/laulive/`.
+5. Cada vez que hagas `git push` con cambios (temas nuevos, noticias,
+   etc.), GitHub Pages se actualiza solo en un par de minutos.
+
+Esa URL queda **pública** (cualquiera con el link puede abrirla) — a
+diferencia de correrla local, donde solo vos podés acceder. Como el
+contenido no es sensible (overlay de música y noticias, sin datos
+privados), no debería ser un problema, pero tenelo presente. GitHub
+Pages no soporta usuario/contraseña (Basic Auth) por su cuenta; si más
+adelante eso importa, es otro argumento a favor de migrar a un hosting
+propio como se explica en `HOSTING.md`.
+
+## 5. Agregarlo en OBS
+
+1. En OBS: **Fuentes → Agregar → Fuente de navegador**.
+2. URL: la de GitHub Pages (`https://tu-usuario.github.io/laulive/`) o,
+   si preferís correrlo local, `http://localhost:8080/index.html` con
+   `python3 -m http.server 8080` corriendo.
+3. Ancho/alto: `1920x1080` (o el tamaño de tu escena).
+4. Marcá **"Controlar audio a través de OBS"** para poder mezclar el
    volumen de la música con el mixer de OBS.
-6. Si el audio no arranca solo (política de autoplay), tildá también
+5. Si el audio no arranca solo (política de autoplay), tildá también
    la opción de OBS que permite reproducción de medios sin interacción,
    o simplemente refrescá la fuente una vez al agregarla.
 
-## 5. Subir a un hosting público (ej. WordPress)
+## 6. Más adelante: hosting propio (ej. WordPress)
 
-Si en vez de correrla local pensás subir esta carpeta a un hosting con
-URL pública (por ejemplo, una carpeta del hosting de WordPress) para
-que OBS la lea desde ahí, dos cosas importantes:
-
-- Acordate del **paso 1**: en ese tipo de hosting el auto-escaneo de
-  `/music` no va a funcionar, así que `playlist.json` (regenerado con
-  el script) es indispensable.
-- Esa URL va a ser accesible para cualquiera que la tenga. Ver
-  **[`HOSTING.md`](HOSTING.md)** para cómo protegerla con usuario y
-  contraseña (Basic Auth) antes de subirla.
+Cuando llegue el momento de migrar a un hosting propio (por ejemplo,
+una carpeta dentro del hosting de WordPress), ver
+**[`HOSTING.md`](HOSTING.md)**: ahí está la guía de protección con
+usuario/contraseña (Basic Auth) y el detalle de `music/playlist.php`,
+que en ese tipo de hosting permite detectar mp3s nuevos sin correr
+ningún script.
 
 ## Personalización rápida (`js/app.js` → `CONFIG`)
 

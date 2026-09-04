@@ -19,37 +19,52 @@ backgrounds/            poné acá las publicidades: imagen o video mudo
 backgrounds/playlist.json   lista de fondos (se autogenera con el script)
 scripts/generate_playlist.py             escanea /music y actualiza playlist.json
 scripts/generate_backgrounds_playlist.py escanea /backgrounds y actualiza su playlist.json
+.github/workflows/update-playlists.yml   corre esos scripts solo al subir archivos (ver mas abajo)
 hosting/.htaccess.example      plantilla de usuario/contraseña para hosting público
 HOSTING.md               guía de hosting en WordPress y protección de acceso
 ```
 
+## 0. Subir música/fondos y que se actualice solo (configuración única)
+
+Subir archivos a `music/` o `backgrounds/` (por ejemplo desde la web de
+GitHub, con "Add file → Upload files") **actualiza la playlist sola**:
+un GitHub Action detecta el cambio, corre los scripts de
+`scripts/generate_playlist.py` / `scripts/generate_backgrounds_playlist.py`
+y commitea el `playlist.json` actualizado — no hace falta correr nada a
+mano ni pedirme que lo haga.
+
+Esto requiere un **paso de configuración único** en el repositorio (ya
+lo hizo Claude/alguien con acceso, pero por las dudas):
+
+1. GitHub → **Settings → Actions → General**.
+2. Bajar hasta **"Workflow permissions"**.
+3. Elegir **"Read and write permissions"** y guardar.
+
+Sin este permiso, el Action no puede commitear el `playlist.json`
+actualizado (falla con un error de permisos, visible en la pestaña
+**Actions** del repo). Se configura una sola vez.
+
 ## 1. Cargar canciones
 
-Esta página está pensada hoy para **GitHub Pages** (hosting estático:
-no ejecuta PHP ni permite listar carpetas), así que el flujo es:
-
-**Paso obligatorio cada vez que agregás o sacás archivos de `music/`:**
-
 1. Copiá tus archivos de audio a la carpeta `music/` (mp3, m4a, ogg, wav
-   o flac).
-2. Corré:
+   o flac) y subilos al repo (push, o "Add file → Upload files" desde
+   la web de GitHub).
+2. Nombralos idealmente como `Artista - Título.mp3` para que el
+   reproductor detecte artista y título solo. Si no, se usa el nombre
+   del archivo entero como título.
+3. Listo. El GitHub Action (ver sección 0) regenera `music/playlist.json`
+   solo en cuanto detecta el push — no hace falta correr nada a mano.
+   La página relee esa lista cada 2 minutos, así que en un par de
+   minutos el tema nuevo ya está sonando (sin cortar la canción que
+   esté sonando en ese momento, y sin tocar OBS).
+4. Si preferís generarlo vos mismo en el momento (por ejemplo, para
+   probarlo local antes de subir), corré:
    ```bash
    python3 scripts/generate_playlist.py
    ```
-   Esto actualiza `music/playlist.json`, que es la lista que la página
-   realmente reproduce. **Si no corrés este paso, los mp3 nuevos no
-   suenan** (van a estar en la carpeta pero la página no los va a
-   conocer).
-3. Nombralos idealmente como `Artista - Título.mp3` para que el
-   reproductor detecte artista y título solo. Si no, se usa el nombre
-   del archivo entero como título.
-4. Commiteá y pusheá — GitHub Pages se actualiza solo con cada push.
-5. La página relee `playlist.json` sola cada 2 minutos, así que no hace
-   falta tocar OBS ni reiniciar nada para que los temas nuevos empiecen
-   a sonar (la canción que está sonando en ese momento no se corta).
-6. Volver a correr el script es seguro en cualquier momento: **no pisa**
-   títulos/artistas que ya hayas corregido a mano, solo agrega los
-   archivos nuevos y saca los que borraste.
+   Es seguro correrlo en cualquier momento: **no pisa** títulos/artistas
+   que ya hayas corregido a mano, solo agrega los archivos nuevos y saca
+   los que borraste.
 
 > **Sobre `music/playlist.php`**: existe en el repo un endpoint PHP que
 > escanea `/music` solo, en tiempo real, sin necesitar el paso 2 — pero
@@ -71,13 +86,18 @@ directamente su entrada en `music/playlist.json`:
 
 Esa corrección queda guardada aunque vuelvas a correr el script.
 
-### No suenan los temas — checklist rápido
+### No suenan los temas (o no rotan los fondos) — checklist rápido
 
-- ¿Corriste `python3 scripts/generate_playlist.py` después de agregar
-  los mp3? Fijate que `music/playlist.json` no esté vacío (`[]`).
-- ¿Estás abriendo la página con un servidor (`http://localhost:...`) y
-  no como archivo (`file://...`)? Abierta como archivo local, el
-  navegador bloquea la lectura de `playlist.json` y `news.json`.
+- ¿Pasaron ya 1-2 minutos desde que subiste los archivos? El Action
+  tarda un rato en correr y GitHub Pages otro poco en desplegar.
+- Repositorio → pestaña **Actions**: ¿el workflow "Actualizar
+  playlists de musica y fondos" corrió bien (✅) o falló (❌)? Si
+  falló, seguramente falta el permiso de escritura — ver sección 0.
+- Fijate que `music/playlist.json` (o `backgrounds/playlist.json`) no
+  haya quedado vacío (`[]`) después de esto.
+- ¿Estás probando local, abriendo la página con un servidor
+  (`http://localhost:...`) y no como archivo (`file://...`)? Abierta
+  como archivo local, el navegador bloquea la lectura de los `.json`.
 - Revisá la consola del navegador (F12 → Console): ahí quedan los
   errores si algún archivo no carga.
 
@@ -124,15 +144,14 @@ lista (y cuando termina, vuelve a arrancar desde la primera).
 
 ## 3. Cargar publicidades de fondo
 
-Copiá las imágenes y/o videos a la carpeta `backgrounds/` y corré:
+Copiá las imágenes y/o videos a la carpeta `backgrounds/` y subilos al
+repo. Igual que con la música, el GitHub Action (sección 0) regenera
+`backgrounds/playlist.json` solo — no hace falta correr nada a mano.
+Si querés generarlo vos en el momento (ej. para probar local), corré:
 
 ```bash
 python3 scripts/generate_backgrounds_playlist.py
 ```
-
-Igual que con la música, esto es **obligatorio** cada vez que agregás o
-sacás archivos de esa carpeta — si no lo corrés, los archivos nuevos no
-van a rotar.
 
 - Formatos de imagen válidos: `jpg`, `jpeg`, `png`, `webp`, `gif`.
 - Formatos de video válidos: `mp4`, `webm`, `mov`, `m4v`. Los videos se

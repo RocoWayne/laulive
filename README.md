@@ -19,28 +19,36 @@ scripts/generate_playlist.py   escanea /music y regenera playlist.json
 
 ## 1. Cargar canciones
 
-1. Copiá tus archivos de audio a la carpeta `music/`.
+1. Copiá tus archivos de audio a la carpeta `music/` (mp3, m4a, ogg, wav
+   o flac). **No hace falta nada más**: la página escanea sola el
+   contenido de esa carpeta.
 2. Nombralos idealmente como `Artista - Título.mp3` para que el
    reproductor detecte artista y título solo. Si no, se usa el nombre
    del archivo como título.
-3. Corré:
-   ```bash
-   python3 scripts/generate_playlist.py
-   ```
-   Esto regenera `music/playlist.json` con todas las canciones
-   encontradas. Repetilo cada vez que agregues o saques temas.
-4. La página relee `playlist.json` sola cada 5 minutos, así que no hace
-   falta reiniciar la fuente en OBS para que aparezcan temas nuevos
-   (los ya sonando no se cortan).
+3. La página re-escanea `music/` sola cada 2 minutos, así que agregar
+   o sacar temas se refleja solo, sin tocar OBS ni reiniciar nada (la
+   canción que está sonando en ese momento no se corta).
 
-También podés editar `music/playlist.json` a mano si querés forzar un
-título/artista distinto al del nombre de archivo:
+Esto funciona porque el servidor (`python3 -m http.server`) expone el
+listado de la carpeta automáticamente. Si en algún momento cambiás a
+otro servidor que no liste directorios, la página cae automáticamente
+al modo manual descripto abajo.
+
+### Forzar título/artista manualmente (opcional)
+
+Si querés un título distinto al que se deduce del nombre de archivo,
+podés declararlo en `music/playlist.json` (no hace falta listar todos
+los temas, solo los que querés sobrescribir):
 
 ```json
 [
   { "file": "cancion1.mp3", "title": "Mi Título", "artist": "Mi Artista" }
 ]
 ```
+
+También podés seguir usando `scripts/generate_playlist.py` para
+generar ese archivo automáticamente a partir de los nombres de
+archivo, como punto de partida para editarlo.
 
 ## 2. Cargar noticias
 

@@ -122,11 +122,13 @@ el reloj y el reproductor de música siguen visibles arriba de todo.
 ```json
 [
   {
+    "date": "2026-09-04",
     "image": "images/nota1.jpg",
     "text": "Texto o titular de la noticia que se muestra en pantalla.",
     "link": "https://ejemplo.com/nota-completa"
   },
   {
+    "date": "2026-09-04",
     "image": "images/nota2.jpg",
     "text": "Otra noticia. Podés cargar tantas como quieras, se van turnando solas.",
     "link": "https://ejemplo.com/otra-nota"
@@ -134,6 +136,13 @@ el reloj y el reproductor de música siguen visibles arriba de todo.
 ]
 ```
 
+- **`date`** (opcional, formato `AAAA-MM-DD`): la fecha de la noticia.
+  Pasados **7 días** desde esa fecha, la noticia deja de mostrarse
+  sola — así la rotación no se llena de notas viejas si vas sumando
+  una por día sin sacar nada. Una noticia **sin** `date` (o con una
+  fecha mal escrita) **nunca expira**, para no romper nada que ya
+  tengas cargado. El límite de días se ajusta en `js/app.js` →
+  `CONFIG` → `newsMaxAgeDays`.
 - **`image`**: una foto por noticia. Puede ser una ruta local (guardá
   el archivo en `news/images/` y referencialo como
   `images/nombre.jpg`) o una URL completa (`https://...`). Si el link
@@ -335,6 +344,7 @@ ningún script.
 | `newsIntervalMs` | cada cuánto se dispara un bloque de noticias |
 | `newsItemsPerBlock` | cuántas noticias seguidas se muestran por bloque |
 | `newsDisplayMs` | cuánto tiempo queda visible cada noticia dentro del bloque |
+| `newsMaxAgeDays` | días desde `date` antes de que una noticia deje de mostrarse sola |
 | `qrSize` | tamaño en px del QR generado |
 | `backgroundsRefreshMs` | cada cuánto relee la carpeta `backgrounds/` |
 | `backgroundImageDurationMs` | cuánto queda cada imagen de fondo antes de pasar a la siguiente |

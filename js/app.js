@@ -17,6 +17,7 @@ const CONFIG = {
   newsIntervalMs: 15 * 60 * 1000,     // cada cuanto se dispara un bloque de noticias
   newsItemsPerBlock: 2,                // cuantas noticias seguidas se muestran en cada bloque
   newsDisplayMs: 30 * 1000,           // cuánto queda visible cada noticia dentro del bloque
+  newsMaxAgeDays: 7,                  // noticias con "date" mas viejo que esto se dejan de mostrar
   backgroundsRefreshMs: 2 * 60 * 1000,  // re-chequear /backgrounds cada 2 min
   backgroundImageDurationMs: 35 * 1000, // cuanto queda cada imagen antes de pasar a la siguiente
   maxVideoDurationMs: 6 * 60 * 1000,    // watchdog: si un video se cuelga, forzar avance despues de esto
@@ -282,12 +283,25 @@ let newsList = [];
 let newsIndex = 0;
 let newsBlockRunning = false;
 
+// Una noticia con "date" mas vieja que newsMaxAgeDays se deja de
+// mostrar sola (sin fecha, o con una fecha invalida, nunca expira —
+// asi las noticias ya cargadas antes de esta funcion no desaparecen
+// de golpe).
+function isNewsItemFresh(item) {
+  if (!item || !item.date) return true;
+  const published = new Date(item.date);
+  if (isNaN(published.getTime())) return true;
+  const ageMs = Date.now() - published.getTime();
+  return ageMs <= CONFIG.newsMaxAgeDays * 24 * 60 * 60 * 1000;
+}
+
 async function loadNews() {
   try {
     const res = await fetch(CONFIG.newsUrl + "?t=" + Date.now());
     if (!res.ok) throw new Error("No se pudo cargar news.json");
     const data = await res.json();
-    newsList = Array.isArray(data) ? data : data.news || [];
+    const rawList = Array.isArray(data) ? data : data.news || [];
+    newsList = rawList.filter(isNewsItemFresh);
   } catch (err) {
     console.error("Error cargando noticias:", err);
     newsList = [];

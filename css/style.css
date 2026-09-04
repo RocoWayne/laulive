@@ -211,12 +211,15 @@ html,body{
   text-align:center;
   background:var(--news-flat-bg);
   opacity:0;
+  visibility:hidden;
   pointer-events:none;
-  transition:opacity .7s ease;
+  transition:opacity .7s ease, visibility 0s linear .7s;
   overflow:hidden;
 }
 .news-screen.visible{
   opacity:1;
+  visibility:visible;
+  transition:opacity .7s ease, visibility 0s linear 0s;
 }
 .news-tag{
   flex-shrink:0;

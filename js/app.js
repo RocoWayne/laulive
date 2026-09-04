@@ -324,7 +324,13 @@ async function runNewsBlock() {
       newsIndex++;
       await showNewsItem(item);
       newsScreen.classList.remove("visible");
-      await wait(700); // pausa breve entre una noticia y la siguiente
+      await wait(700); // pausa breve entre una noticia y la siguiente (coincide con la transicion CSS)
+      // Cortamos cualquier carga de imagen que siga pendiente y limpiamos
+      // el src, asi una respuesta tardia no puede "colarse" mas adelante.
+      newsImage.onload = null;
+      newsImage.onerror = null;
+      newsImage.removeAttribute("src");
+      newsQr.removeAttribute("src");
     }
   }
 

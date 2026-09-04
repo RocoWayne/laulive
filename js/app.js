@@ -8,14 +8,22 @@ const CONFIG = {
   musicDirUrl: "music/",              // respaldo: listado de directorio del server (sin PHP)
   playlistUrl: "music/playlist.json", // overrides de titulo/artista + respaldo si no hay PHP ni listado
   newsUrl: "news/news.json",
+  backgroundsScanUrl: "backgrounds/playlist.php", // metodo principal: escanea /backgrounds en vivo (requiere PHP)
+  backgroundsDirUrl: "backgrounds/",              // respaldo: listado de directorio del server (sin PHP)
+  backgroundsPlaylistUrl: "backgrounds/playlist.json", // respaldo si no hay PHP ni listado
   playlistRefreshMs: 2 * 60 * 1000,   // re-chequear /music cada 2 min
   newsRefreshMs: 3 * 60 * 1000,       // releer news.json cada 3 min
   newsIntervalMs: 10 * 60 * 1000,     // mostrar una noticia cada 10 min
   newsDisplayMs: 30 * 1000,           // cuánto queda visible cada noticia
+  backgroundsRefreshMs: 2 * 60 * 1000,  // re-chequear /backgrounds cada 2 min
+  backgroundImageDurationMs: 35 * 1000, // cuanto queda cada imagen antes de pasar a la siguiente
   qrSize: 200,
 };
 
 const VALID_AUDIO_EXT = [".mp3", ".m4a", ".ogg", ".wav", ".flac"];
+const VALID_IMAGE_EXT = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
+const VALID_VIDEO_EXT = [".mp4", ".webm", ".mov", ".m4v"];
+const VALID_BACKGROUND_EXT = [...VALID_IMAGE_EXT, ...VALID_VIDEO_EXT];
 
 // ---------------- Reproductor ----------------
 
@@ -61,13 +69,14 @@ function titleFromFilename(filename) {
   return { artist: "", title: base.trim() };
 }
 
-// Lee el listado de directorio que sirve el servidor HTTP para /music/
-// (funciona con `python3 -m http.server`, Apache/nginx con autoindex, etc.)
-// y devuelve los nombres de archivo de audio encontrados.
-async function scanMusicDirectory() {
+// Lee el listado de directorio que sirve el servidor HTTP para una
+// carpeta dada (funciona con `python3 -m http.server`, Apache/nginx con
+// autoindex, etc.) y devuelve los nombres de archivo que matcheen las
+// extensiones validas pasadas.
+async function scanDirectory(dirUrl, validExts) {
   try {
-    const res = await fetch(CONFIG.musicDirUrl + "?t=" + Date.now());
-    if (!res.ok) throw new Error("No se pudo listar " + CONFIG.musicDirUrl);
+    const res = await fetch(dirUrl + "?t=" + Date.now());
+    if (!res.ok) throw new Error("No se pudo listar " + dirUrl);
     const html = await res.text();
     const doc = new DOMParser().parseFromString(html, "text/html");
     const anchors = Array.from(doc.querySelectorAll("a[href]"));
@@ -83,14 +92,18 @@ async function scanMusicDirectory() {
       .filter((name) => {
         if (!name) return false;
         const ext = name.slice(name.lastIndexOf(".")).toLowerCase();
-        return VALID_AUDIO_EXT.includes(ext);
+        return validExts.includes(ext);
       });
     // sin duplicados
     return Array.from(new Set(files));
   } catch (err) {
-    console.warn("No se pudo auto-escanear /music (¿autoindex deshabilitado?):", err);
+    console.warn(`No se pudo auto-escanear ${dirUrl} (¿autoindex deshabilitado?):`, err);
     return [];
   }
+}
+
+function scanMusicDirectory() {
+  return scanDirectory(CONFIG.musicDirUrl, VALID_AUDIO_EXT);
 }
 
 // Metodo PRINCIPAL: music/playlist.php escanea la carpeta /music en
@@ -294,15 +307,123 @@ setInterval(async () => {
 
 setInterval(showNews, CONFIG.newsIntervalMs);
 
+// ---------------- Fondos rotativos (publicidades) ----------------
+// Imagenes y video mudo de /backgrounds, a pantalla completa detras de
+// todo lo demas. Mismo esquema de 3 metodos que la musica: PHP en vivo
+// (WordPress) > backgrounds/playlist.json (GitHub Pages) > auto-escaneo
+// de directorio (solo pruebas locales).
+
+const bgImage = document.getElementById("bgImage");
+const bgVideo = document.getElementById("bgVideo");
+
+let backgrounds = [];
+let currentBackground = null;
+let bgAdvanceTimer = null;
+
+function backgroundType(file) {
+  const ext = file.slice(file.lastIndexOf(".")).toLowerCase();
+  if (VALID_VIDEO_EXT.includes(ext)) return "video";
+  if (VALID_IMAGE_EXT.includes(ext)) return "image";
+  return null;
+}
+
+async function loadBackgroundsFromPhp() {
+  try {
+    const res = await fetch(CONFIG.backgroundsScanUrl + "?t=" + Date.now());
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!Array.isArray(data)) return null;
+    return data
+      .map((t) => (typeof t === "string" ? t : t.file))
+      .filter(Boolean);
+  } catch {
+    return null; // PHP no disponible en este hosting
+  }
+}
+
+async function loadBackgroundsFromJson() {
+  try {
+    const res = await fetch(CONFIG.backgroundsPlaylistUrl + "?t=" + Date.now());
+    if (!res.ok) return [];
+    const data = await res.json();
+    const list = Array.isArray(data) ? data : data.files || [];
+    return list.map((t) => (typeof t === "string" ? t : t.file)).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+async function loadBackgrounds() {
+  let files = await loadBackgroundsFromPhp();
+
+  if (!files || files.length === 0) {
+    files = await loadBackgroundsFromJson();
+  }
+  if (files.length === 0) {
+    files = await scanDirectory(CONFIG.backgroundsDirUrl, VALID_BACKGROUND_EXT);
+  }
+
+  backgrounds = files
+    .map((file) => ({ file, type: backgroundType(file) }))
+    .filter((item) => item.type !== null);
+}
+
+function pickNextBackground() {
+  if (backgrounds.length === 0) return null;
+  if (backgrounds.length === 1) return backgrounds[0];
+
+  let pool = backgrounds;
+  if (currentBackground) {
+    pool = backgrounds.filter((b) => b.file !== currentBackground.file);
+  }
+  return shuffle(pool)[0];
+}
+
+function advanceBackground() {
+  if (bgAdvanceTimer) {
+    clearTimeout(bgAdvanceTimer);
+    bgAdvanceTimer = null;
+  }
+  const next = pickNextBackground();
+  if (next) showBackground(next);
+}
+
+function showBackground(item) {
+  currentBackground = item;
+  const src = CONFIG.backgroundsDirUrl + encodeURIComponent(item.file);
+
+  if (item.type === "video") {
+    bgImage.classList.remove("active");
+    bgVideo.onended = advanceBackground;
+    bgVideo.onerror = () => setTimeout(advanceBackground, 1000);
+    bgVideo.src = src;
+    bgVideo.currentTime = 0;
+    bgVideo.play().catch(() => setTimeout(advanceBackground, 1000));
+    bgVideo.classList.add("active");
+  } else {
+    bgVideo.pause();
+    bgVideo.classList.remove("active");
+    bgImage.onload = () => bgImage.classList.add("active");
+    bgImage.onerror = () => setTimeout(advanceBackground, 500);
+    bgImage.src = src;
+    bgAdvanceTimer = setTimeout(advanceBackground, CONFIG.backgroundImageDurationMs);
+  }
+}
+
+setInterval(async () => {
+  await loadBackgrounds();
+}, CONFIG.backgroundsRefreshMs);
+
 // ---------------- Arranque ----------------
 
 (async function start() {
-  await Promise.all([loadPlaylist(), loadNews()]);
+  await Promise.all([loadPlaylist(), loadNews(), loadBackgrounds()]);
   if (playlist.length > 0) playNext();
   else {
     trackTitleEl.textContent = "Sin canciones en /music";
     trackArtistEl.textContent = "Agregá archivos y actualizá playlist.json";
   }
+  advanceBackground();
   // Primera noticia recién a los newsIntervalMs, no de arranque,
   // para no tapar la pantalla apenas abre OBS.
 })();

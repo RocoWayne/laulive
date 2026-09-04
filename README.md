@@ -1,20 +1,24 @@
 # Laura Ubfal Live — Fuente de navegador para OBS
 
 Página HTML pensada como **Browser Source** de OBS para una transmisión
-24/7: reproduce música en aleatorio con el título en pantalla, y muestra
-noticias con foto + texto + código QR hacia la nota.
+24/7: reproduce música en aleatorio con el título en pantalla, muestra
+noticias con foto + texto + código QR hacia la nota, y rota publicidades
+(imagen o video mudo) de fondo.
 
 ## Estructura
 
 ```
 index.html            página principal (la que se carga en OBS)
 css/style.css          estilos
-js/app.js               lógica: playlist, reproductor, noticias, QR
+js/app.js               lógica: playlist, reproductor, noticias, fondos, QR
 music/                 poné acá tus archivos de audio (mp3, m4a, ogg, wav, flac)
 music/playlist.json     lista de canciones (se autogenera con el script)
 news/news.json          lista de noticias a mostrar
 news/images/            imágenes locales de noticias (opcional)
-scripts/generate_playlist.py   escanea /music y actualiza playlist.json
+backgrounds/            poné acá las publicidades: imagen o video mudo
+backgrounds/playlist.json   lista de fondos (se autogenera con el script)
+scripts/generate_playlist.py             escanea /music y actualiza playlist.json
+scripts/generate_backgrounds_playlist.py escanea /backgrounds y actualiza su playlist.json
 hosting/.htaccess.example      plantilla de usuario/contraseña para hosting público
 HOSTING.md               guía de hosting en WordPress y protección de acceso
 ```
@@ -118,7 +122,36 @@ lista (y cuando termina, vuelve a arrancar desde la primera).
   `newsIntervalMs` (frecuencia) y `newsDisplayMs` (duración en
   pantalla).
 
-## 3. Probarlo / correrlo
+## 3. Cargar publicidades de fondo
+
+Copiá las imágenes y/o videos a la carpeta `backgrounds/` y corré:
+
+```bash
+python3 scripts/generate_backgrounds_playlist.py
+```
+
+Igual que con la música, esto es **obligatorio** cada vez que agregás o
+sacás archivos de esa carpeta — si no lo corrés, los archivos nuevos no
+van a rotar.
+
+- Formatos de imagen válidos: `jpg`, `jpeg`, `png`, `webp`, `gif`.
+- Formatos de video válidos: `mp4`, `webm`, `mov`, `m4v`. Los videos se
+  reproducen **sin sonido** (aunque tengan audio, se silencia) y de
+  fondo, ocupando toda la pantalla, con un velo oscuro encima para que
+  el título de la canción y las noticias se sigan leyendo bien.
+- Van rotando solas, en orden aleatorio (sin repetir la anterior):
+  cada **imagen** queda 35 segundos y pasa a la siguiente; cada
+  **video** se reproduce completo y recién ahí pasa al siguiente.
+- La página relee la carpeta cada 2 minutos, así que agregar o sacar
+  archivos se refleja solo, sin cortar el fondo que esté mostrando en
+  ese momento.
+- Si la carpeta está vacía, se ve el fondo degradado original (el de
+  antes de esta función) — no hace falta tener archivos cargados para
+  que la página funcione.
+- El tiempo que queda cada imagen se ajusta en `js/app.js` → `CONFIG` →
+  `backgroundImageDurationMs`.
+
+## 4. Probarlo / correrlo
 
 Los `fetch()` a los `.json` necesitan que la página se sirva por HTTP,
 no abierta como archivo local (`file://`). Desde la carpeta del
@@ -131,7 +164,7 @@ python3 -m http.server 8080
 Y abrís `http://localhost:8080/index.html` en el navegador para
 probarlo antes de meterlo en OBS.
 
-## 4. Publicarlo en GitHub Pages
+## 5. Publicarlo en GitHub Pages
 
 Esta es la forma en la que estamos usando el proyecto por ahora, así
 no depende de tener un servidor corriendo en la PC de streaming:
@@ -154,7 +187,7 @@ Pages no soporta usuario/contraseña (Basic Auth) por su cuenta; si más
 adelante eso importa, es otro argumento a favor de migrar a un hosting
 propio como se explica en `HOSTING.md`.
 
-## 5. Agregarlo en OBS
+## 6. Agregarlo en OBS
 
 1. En OBS: **Fuentes → Agregar → Fuente de navegador**.
 2. URL: la de GitHub Pages (`https://tu-usuario.github.io/laulive/`) o,
@@ -167,7 +200,7 @@ propio como se explica en `HOSTING.md`.
    la opción de OBS que permite reproducción de medios sin interacción,
    o simplemente refrescá la fuente una vez al agregarla.
 
-## 6. Más adelante: hosting propio (ej. WordPress)
+## 7. Más adelante: hosting propio (ej. WordPress)
 
 Cuando llegue el momento de migrar a un hosting propio (por ejemplo,
 una carpeta dentro del hosting de WordPress), ver
@@ -185,6 +218,8 @@ ningún script.
 | `newsIntervalMs` | cada cuánto aparece una noticia en pantalla |
 | `newsDisplayMs` | cuánto tiempo queda visible cada noticia |
 | `qrSize` | tamaño en px del QR generado |
+| `backgroundsRefreshMs` | cada cuánto relee la carpeta `backgrounds/` |
+| `backgroundImageDurationMs` | cuánto queda cada imagen de fondo antes de pasar a la siguiente |
 
 ## Ideas para seguir sumando
 

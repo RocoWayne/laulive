@@ -19,6 +19,7 @@ const CONFIG = {
   backgroundsRefreshMs: 2 * 60 * 1000,  // re-chequear /backgrounds cada 2 min
   backgroundImageDurationMs: 35 * 1000, // cuanto queda cada imagen antes de pasar a la siguiente
   qrSize: 200,
+  qrUtmParams: "utm_source=youtube&utm_medium=qrscan&utm_campaign=lasocia", // tracking del QR de noticias
   subscribeFirstDelayMs: 60 * 1000,     // primera aparicion: al minuto de abrir la pagina
   subscribeIntervalMs: 10 * 60 * 1000,  // despues, cada 10 minutos
   subscribeDisplayMs: 15 * 1000,        // cuanto queda visible cada vez
@@ -272,8 +273,16 @@ async function loadNews() {
   }
 }
 
+// Agrega los parametros UTM de tracking al link antes de generar el QR,
+// para poder medir en Analytics/YouTube cuanta gente escanea desde la
+// transmision. Respeta query params que ya tenga el link.
+function addUtmParams(link) {
+  const separator = link.includes("?") ? "&" : "?";
+  return link + separator + CONFIG.qrUtmParams;
+}
+
 function qrUrlFor(link) {
-  const encoded = encodeURIComponent(link);
+  const encoded = encodeURIComponent(addUtmParams(link));
   return `https://api.qrserver.com/v1/create-qr-code/?size=${CONFIG.qrSize}x${CONFIG.qrSize}&data=${encoded}`;
 }
 

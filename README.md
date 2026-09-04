@@ -143,6 +143,11 @@ el reloj y el reproductor de música siguen visibles arriba de todo.
   Se convierte **automáticamente en un código QR** en pantalla (no
   hace falta generar el QR vos). Si una noticia no tiene `link`, se
   muestra sin QR.
+  Antes de generar el QR, se le agregan automáticamente parámetros UTM
+  para trackear en Analytics/YouTube cuánta gente escanea desde la
+  transmisión (`?utm_source=youtube&utm_medium=qrscan&utm_campaign=lasocia`,
+  o con `&` si el link ya tenía otros parámetros). Se ajusta en
+  `js/app.js` → `CONFIG` → `qrUtmParams`.
 - La página relee `news.json` sola cada 3 minutos, así que agregar o
   sacar noticias de la lista se refleja solo (sin reiniciar OBS).
 - **Al abrir la página** ya arranca mostrando un bloque de noticias

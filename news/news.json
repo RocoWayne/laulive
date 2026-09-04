@@ -2,6 +2,11 @@
   {
     "image": "images/ejemplo-1.jpg",
     "text": "Este es un titular de ejemplo. Reemplazá este texto, la imagen y el link por una noticia real.",
-    "link": "https://ejemplo.com/nota-de-ejemplo"
+    "link": "https://ejemplo.com/nota-de-ejemplo-1"
+  },
+  {
+    "image": "images/ejemplo-2.jpg",
+    "text": "Segundo ejemplo: podés cargar varias noticias en esta lista y van a ir rotando solas, una por vez, en cada intervalo.",
+    "link": "https://ejemplo.com/nota-de-ejemplo-2"
   }
 ]

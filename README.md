@@ -79,8 +79,10 @@ Esa corrección queda guardada aunque vuelvas a correr el script.
 
 ## 2. Cargar noticias
 
-Editá `news/news.json`. Es una lista, podés tener varias noticias y se
-van mostrando una por una, rotando:
+Editá `news/news.json`. Es una lista: cargá ahí todas las noticias que
+quieras tener disponibles y la página las va mostrando **una por vez,
+rotando en orden** — cada `newsIntervalMs` aparece la siguiente de la
+lista (y cuando termina, vuelve a arrancar desde la primera).
 
 ```json
 [
@@ -88,19 +90,33 @@ van mostrando una por una, rotando:
     "image": "images/nota1.jpg",
     "text": "Texto o titular de la noticia que se muestra en pantalla.",
     "link": "https://ejemplo.com/nota-completa"
+  },
+  {
+    "image": "images/nota2.jpg",
+    "text": "Otra noticia. Podés cargar tantas como quieras, se van turnando solas.",
+    "link": "https://ejemplo.com/otra-nota"
   }
 ]
 ```
 
-- `image` puede ser una ruta local (guardá el archivo en
-  `news/images/`) o una URL completa (`https://...`).
-- `link` es la URL de la noticia completa: se convierte
-  **automáticamente** en un código QR en pantalla (no hace falta generar
-  el QR vos, se genera solo).
-- La página relee `news.json` cada 3 minutos.
-- Podés ajustar cada cuánto aparece una noticia y cuánto tiempo queda
-  visible editando `CONFIG.newsIntervalMs` y `CONFIG.newsDisplayMs` en
-  `js/app.js`.
+- **`image`**: una foto por noticia. Puede ser una ruta local (guardá
+  el archivo en `news/images/` y referencialo como
+  `images/nombre.jpg`) o una URL completa (`https://...`). Si el link
+  se rompe o la imagen no carga, la página lo detecta sola y oculta
+  el espacio de la foto en vez de mostrar un ícono roto.
+- **`text`**: el titular/texto corto que se muestra. Si es muy largo,
+  se corta con puntos suspensivos a partir de la 5ª línea — mejor
+  mantenerlo breve (1-2 oraciones).
+- **`link`**: la URL de la noticia completa en la web de Laura Ubfal.
+  Se convierte **automáticamente en un código QR** en pantalla (no
+  hace falta generar el QR vos). Si una noticia no tiene `link`, se
+  muestra sin QR.
+- La página relee `news.json` sola cada 3 minutos, así que agregar o
+  sacar noticias de la lista se refleja solo (sin reiniciar OBS).
+- Por defecto: una noticia aparece **cada 10 minutos** y queda visible
+  **30 segundos**. Se puede ajustar en `js/app.js` → `CONFIG`:
+  `newsIntervalMs` (frecuencia) y `newsDisplayMs` (duración en
+  pantalla).
 
 ## 3. Probarlo / correrlo
 

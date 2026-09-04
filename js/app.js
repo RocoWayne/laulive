@@ -10,8 +10,8 @@ const CONFIG = {
   newsUrl: "news/news.json",
   playlistRefreshMs: 2 * 60 * 1000,   // re-chequear /music cada 2 min
   newsRefreshMs: 3 * 60 * 1000,       // releer news.json cada 3 min
-  newsIntervalMs: 6 * 60 * 1000,      // mostrar una noticia cada 6 min
-  newsDisplayMs: 25 * 1000,           // cuánto queda visible cada noticia
+  newsIntervalMs: 10 * 60 * 1000,     // mostrar una noticia cada 10 min
+  newsDisplayMs: 30 * 1000,           // cuánto queda visible cada noticia
   qrSize: 200,
 };
 
@@ -254,14 +254,32 @@ function qrUrlFor(link) {
   return `https://api.qrserver.com/v1/create-qr-code/?size=${CONFIG.qrSize}x${CONFIG.qrSize}&data=${encoded}`;
 }
 
+const newsMedia = document.querySelector(".news-media");
+
 function showNews() {
   if (!newsList || newsList.length === 0) return;
   const item = newsList[newsIndex % newsList.length];
   newsIndex++;
+  if (!item || (!item.text && !item.image)) return;
 
-  newsImage.src = item.image || "";
+  // Si la imagen no carga (link roto, 404), ocultamos el bloque de
+  // foto en vez de mostrar el ícono de imagen rota.
+  if (item.image) {
+    newsImage.onerror = () => { newsMedia.style.display = "none"; };
+    newsImage.onload = () => { newsMedia.style.display = ""; };
+    newsImage.src = item.image;
+  } else {
+    newsMedia.style.display = "none";
+  }
+
   newsText.textContent = item.text || "";
-  newsQr.src = item.link ? qrUrlFor(item.link) : "";
+
+  if (item.link) {
+    newsQr.src = qrUrlFor(item.link);
+    newsCard.classList.remove("no-link");
+  } else {
+    newsCard.classList.add("no-link");
+  }
 
   newsCard.classList.add("visible");
 

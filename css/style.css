@@ -213,7 +213,9 @@ html,body{
   font-weight:600;
   line-height:1.35;
   margin-bottom:14px;
-  max-height:110px;
+  display:-webkit-box;
+  -webkit-line-clamp:5;
+  -webkit-box-orient:vertical;
   overflow:hidden;
 }
 .news-qr-row{
@@ -223,6 +225,8 @@ html,body{
   border-top:1px solid var(--card-border);
   padding-top:14px;
 }
+/* Si la noticia no tiene link, no hay QR que mostrar */
+.news.no-link .news-qr-row{display:none;}
 .news-qr{
   width:64px;
   height:64px;

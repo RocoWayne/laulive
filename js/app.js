@@ -352,6 +352,9 @@ setInterval(runNewsBlock, CONFIG.newsIntervalMs);
 
 const bgImage = document.getElementById("bgImage");
 const bgVideo = document.getElementById("bgVideo");
+// Nunca debe sonar, desde el primer momento (ver tambien showBackground).
+bgVideo.muted = true;
+bgVideo.volume = 0;
 
 let backgrounds = [];
 let currentBackground = null;
@@ -431,6 +434,12 @@ function showBackground(item) {
 
   if (item.type === "video") {
     bgImage.classList.remove("active");
+    // Los videos de /backgrounds NUNCA deben sonar, tengan o no pista
+    // de audio. El atributo "muted" del <video> en el HTML ya lo hace,
+    // pero lo reforzamos tambien por JS (propiedad, no solo atributo)
+    // para que quede garantizado pase lo que pase.
+    bgVideo.muted = true;
+    bgVideo.volume = 0;
     bgVideo.onended = advanceBackground;
     bgVideo.onerror = () => setTimeout(advanceBackground, 1000);
     bgVideo.src = src;

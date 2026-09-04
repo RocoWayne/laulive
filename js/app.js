@@ -92,9 +92,12 @@ async function scanMusicDirectory() {
   }
 }
 
-// playlist.json es opcional: si un archivo detectado en /music aparece ahí,
-// se usa su título/artista manual en vez del que se deduce del nombre.
-async function loadManualOverrides() {
+// playlist.json (generado por scripts/generate_playlist.py) es la fuente
+// PRINCIPAL de la playlist: funciona en cualquier hosting, incluido
+// WordPress, donde el listado automático de directorio suele estar
+// deshabilitado. Devuelve tanto la lista de archivos como overrides de
+// título/artista para cada uno.
+async function loadDeclaredPlaylist() {
   try {
     const res = await fetch(CONFIG.playlistUrl + "?t=" + Date.now());
     if (!res.ok) return {};
@@ -102,8 +105,11 @@ async function loadManualOverrides() {
     const tracks = Array.isArray(data) ? data : data.tracks || [];
     const map = {};
     for (const t of tracks) {
-      if (typeof t === "string") continue;
-      if (t.file) map[t.file] = t;
+      if (typeof t === "string") {
+        map[t] = {};
+      } else if (t.file) {
+        map[t.file] = t;
+      }
     }
     return map;
   } catch {
@@ -112,22 +118,21 @@ async function loadManualOverrides() {
 }
 
 async function loadPlaylist() {
-  const [files, overrides] = await Promise.all([
-    scanMusicDirectory(),
-    loadManualOverrides(),
-  ]);
+  const declared = await loadDeclaredPlaylist();
+  let sourceFiles = Object.keys(declared);
 
-  let sourceFiles = files;
-
-  // Fallback: si el servidor no permite listar el directorio, usamos
-  // directamente los archivos declarados en playlist.json (modo manual).
-  if (sourceFiles.length === 0 && Object.keys(overrides).length > 0) {
-    sourceFiles = Object.keys(overrides);
+  // Fallback SOLO para pruebas locales: si playlist.json todavía no fue
+  // generado (o está vacío), intentamos auto-escanear /music. Esto
+  // requiere que el servidor liste directorios (funciona con
+  // `python3 -m http.server`), algo que la mayoría de los hostings de
+  // producción (WordPress incluido) tienen deshabilitado.
+  if (sourceFiles.length === 0) {
+    sourceFiles = await scanMusicDirectory();
   }
 
   playlist = sourceFiles.map((file) => {
     const parsed = titleFromFilename(file);
-    const override = overrides[file] || {};
+    const override = declared[file] || {};
     return {
       file,
       title: override.title || parsed.title,

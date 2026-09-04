@@ -14,41 +14,66 @@ music/                 poné acá tus archivos de audio (mp3, m4a, ogg, wav, fla
 music/playlist.json     lista de canciones (se autogenera con el script)
 news/news.json          lista de noticias a mostrar
 news/images/            imágenes locales de noticias (opcional)
-scripts/generate_playlist.py   escanea /music y regenera playlist.json
+scripts/generate_playlist.py   escanea /music y actualiza playlist.json
+hosting/.htaccess.example      plantilla de usuario/contraseña para hosting público
+HOSTING.md               guía de hosting en WordPress y protección de acceso
 ```
 
 ## 1. Cargar canciones
 
+**Paso obligatorio cada vez que agregás o sacás archivos de `music/`:**
+
 1. Copiá tus archivos de audio a la carpeta `music/` (mp3, m4a, ogg, wav
-   o flac). **No hace falta nada más**: la página escanea sola el
-   contenido de esa carpeta.
-2. Nombralos idealmente como `Artista - Título.mp3` para que el
+   o flac).
+2. Corré:
+   ```bash
+   python3 scripts/generate_playlist.py
+   ```
+   Esto actualiza `music/playlist.json`, que es la lista que la página
+   realmente reproduce. **Si no corrés este paso, los mp3 nuevos no
+   suenan** (van a estar en la carpeta pero la página no los va a
+   conocer).
+3. Nombralos idealmente como `Artista - Título.mp3` para que el
    reproductor detecte artista y título solo. Si no, se usa el nombre
-   del archivo como título.
-3. La página re-escanea `music/` sola cada 2 minutos, así que agregar
-   o sacar temas se refleja solo, sin tocar OBS ni reiniciar nada (la
-   canción que está sonando en ese momento no se corta).
+   del archivo entero como título.
+4. La página relee `playlist.json` sola cada 2 minutos, así que no hace
+   falta tocar OBS ni reiniciar nada para que los temas nuevos empiecen
+   a sonar (la canción que está sonando en ese momento no se corta).
+5. Volver a correr el script es seguro en cualquier momento: **no pisa**
+   títulos/artistas que ya hayas corregido a mano, solo agrega los
+   archivos nuevos y saca los que borraste.
 
-Esto funciona porque el servidor (`python3 -m http.server`) expone el
-listado de la carpeta automáticamente. Si en algún momento cambiás a
-otro servidor que no liste directorios, la página cae automáticamente
-al modo manual descripto abajo.
+> ¿Por qué no escanea la carpeta sola, sin el script? Probamos esa
+> variante, pero depende de que el servidor tenga habilitado el listado
+> de directorios — funciona con `python3 -m http.server` para pruebas
+> locales, pero la mayoría de los hostings de producción (WordPress
+> incluido) lo tienen deshabilitado por seguridad. Por eso
+> `playlist.json` es ahora la fuente principal y confiable en cualquier
+> lado; el auto-escaneo de directorio quedó solo como respaldo para
+> cuando `playlist.json` está vacío.
 
-### Forzar título/artista manualmente (opcional)
+### Corregir título/artista manualmente
 
-Si querés un título distinto al que se deduce del nombre de archivo,
-podés declararlo en `music/playlist.json` (no hace falta listar todos
-los temas, solo los que querés sobrescribir):
+Muchos bancos de música libre nombran los archivos al revés ("Título -
+Artista" en vez de "Artista - Título"), y el script no tiene forma de
+adivinar eso. Si ves un tema con el título/artista cambiado, editá
+directamente su entrada en `music/playlist.json`:
 
 ```json
-[
-  { "file": "cancion1.mp3", "title": "Mi Título", "artist": "Mi Artista" }
-]
+{ "file": "cancion1.mp3", "title": "Mi Título", "artist": "Mi Artista" }
 ```
 
-También podés seguir usando `scripts/generate_playlist.py` para
-generar ese archivo automáticamente a partir de los nombres de
-archivo, como punto de partida para editarlo.
+Esa corrección queda guardada aunque vuelvas a correr el script.
+
+### No suenan los temas — checklist rápido
+
+- ¿Corriste `python3 scripts/generate_playlist.py` después de agregar
+  los mp3? Fijate que `music/playlist.json` no esté vacío (`[]`).
+- ¿Estás abriendo la página con un servidor (`http://localhost:...`) y
+  no como archivo (`file://...`)? Abierta como archivo local, el
+  navegador bloquea la lectura de `playlist.json` y `news.json`.
+- Revisá la consola del navegador (F12 → Console): ahí quedan los
+  errores si algún archivo no carga.
 
 ## 2. Cargar noticias
 
@@ -100,6 +125,19 @@ probarlo antes de meterlo en OBS.
 6. Si el audio no arranca solo (política de autoplay), tildá también
    la opción de OBS que permite reproducción de medios sin interacción,
    o simplemente refrescá la fuente una vez al agregarla.
+
+## 5. Subir a un hosting público (ej. WordPress)
+
+Si en vez de correrla local pensás subir esta carpeta a un hosting con
+URL pública (por ejemplo, una carpeta del hosting de WordPress) para
+que OBS la lea desde ahí, dos cosas importantes:
+
+- Acordate del **paso 1**: en ese tipo de hosting el auto-escaneo de
+  `/music` no va a funcionar, así que `playlist.json` (regenerado con
+  el script) es indispensable.
+- Esa URL va a ser accesible para cualquiera que la tenga. Ver
+  **[`HOSTING.md`](HOSTING.md)** para cómo protegerla con usuario y
+  contraseña (Basic Auth) antes de subirla.
 
 ## Personalización rápida (`js/app.js` → `CONFIG`)
 

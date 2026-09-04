@@ -19,6 +19,9 @@ const CONFIG = {
   backgroundsRefreshMs: 2 * 60 * 1000,  // re-chequear /backgrounds cada 2 min
   backgroundImageDurationMs: 35 * 1000, // cuanto queda cada imagen antes de pasar a la siguiente
   qrSize: 200,
+  subscribeFirstDelayMs: 60 * 1000,     // primera aparicion: al minuto de abrir la pagina
+  subscribeIntervalMs: 10 * 60 * 1000,  // despues, cada 10 minutos
+  subscribeDisplayMs: 15 * 1000,        // cuanto queda visible cada vez
 };
 
 const VALID_AUDIO_EXT = [".mp3", ".m4a", ".ogg", ".wav", ".flac"];
@@ -458,6 +461,29 @@ function resumeBackgroundRotation() {
 setInterval(async () => {
   await loadBackgrounds();
 }, CONFIG.backgroundsRefreshMs);
+
+// ---------------- Popup de suscripción ----------------
+// Desciende desde el centro-arriba, queda visible subscribeDisplayMs
+// y vuelve a subir. Arranca al minuto de abrir la pagina y despues se
+// repite cada subscribeIntervalMs.
+
+const subscribePopup = document.getElementById("subscribePopup");
+
+function showSubscribePopup() {
+  // Evitamos superponerlo con la pantalla de noticias a pantalla
+  // completa; si coincide, se salta esta vez y aparece en el proximo turno.
+  if (newsBlockRunning) return;
+
+  subscribePopup.classList.add("visible");
+  setTimeout(() => {
+    subscribePopup.classList.remove("visible");
+  }, CONFIG.subscribeDisplayMs);
+}
+
+setTimeout(() => {
+  showSubscribePopup();
+  setInterval(showSubscribePopup, CONFIG.subscribeIntervalMs);
+}, CONFIG.subscribeFirstDelayMs);
 
 // ---------------- Arranque ----------------
 

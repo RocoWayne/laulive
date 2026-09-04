@@ -2,8 +2,9 @@
 
 Página HTML pensada como **Browser Source** de OBS para una transmisión
 24/7: reproduce música en aleatorio con el título en pantalla, muestra
-noticias con foto + texto + código QR hacia la nota, y rota publicidades
-(imagen o video mudo) de fondo.
+noticias con foto + texto + código QR hacia la nota, rota publicidades
+(imagen o video mudo) de fondo, y de tanto en tanto un popup invitando
+a suscribirse.
 
 ## Estructura
 
@@ -186,7 +187,26 @@ python3 scripts/generate_backgrounds_playlist.py
 - El tiempo que queda cada imagen se ajusta en `js/app.js` → `CONFIG` →
   `backgroundImageDurationMs`.
 
-## 4. Probarlo / correrlo
+## 4. Popup de suscripción
+
+Un banner desciende desde arriba al centro de la pantalla invitando a
+suscribirse, y vuelve a subir solo. Por ahora es solo texto (sin
+link/QR — se puede agregar el día que haya un canal/link definido).
+
+- Aparece **al minuto** de abrir la página, y después **cada 10
+  minutos**.
+- Queda visible **15 segundos** cada vez.
+- Si coincide con un bloque de noticias (pantalla completa), se salta
+  esa aparición para no superponerse — vuelve a aparecer en el
+  siguiente turno, 10 minutos después.
+- Texto, tiempos y color se ajustan en:
+  - `index.html` → `#subscribePopup` (el texto)
+  - `js/app.js` → `CONFIG` → `subscribeFirstDelayMs`,
+    `subscribeIntervalMs`, `subscribeDisplayMs`
+  - `css/style.css` → `.subscribe-popup` (usa el gradiente de acento
+    de la marca por defecto)
+
+## 5. Probarlo / correrlo
 
 Los `fetch()` a los `.json` necesitan que la página se sirva por HTTP,
 no abierta como archivo local (`file://`). Desde la carpeta del
@@ -199,7 +219,7 @@ python3 -m http.server 8080
 Y abrís `http://localhost:8080/index.html` en el navegador para
 probarlo antes de meterlo en OBS.
 
-## 5. Publicarlo en GitHub Pages
+## 6. Publicarlo en GitHub Pages
 
 Esta es la forma en la que estamos usando el proyecto por ahora, así
 no depende de tener un servidor corriendo en la PC de streaming:
@@ -222,7 +242,7 @@ Pages no soporta usuario/contraseña (Basic Auth) por su cuenta; si más
 adelante eso importa, es otro argumento a favor de migrar a un hosting
 propio como se explica en `HOSTING.md`.
 
-## 6. Agregarlo en OBS
+## 7. Agregarlo en OBS
 
 1. En OBS: **Fuentes → Agregar → Fuente de navegador**.
 2. URL: la de GitHub Pages (`https://tu-usuario.github.io/laulive/`) o,
@@ -235,7 +255,7 @@ propio como se explica en `HOSTING.md`.
    la opción de OBS que permite reproducción de medios sin interacción,
    o simplemente refrescá la fuente una vez al agregarla.
 
-## 7. Más adelante: hosting propio (ej. WordPress)
+## 8. Más adelante: hosting propio (ej. WordPress)
 
 Cuando llegue el momento de migrar a un hosting propio (por ejemplo,
 una carpeta dentro del hosting de WordPress), ver

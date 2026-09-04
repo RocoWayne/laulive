@@ -269,6 +269,53 @@ html,body{
   text-align:left;
 }
 
+/* ---------- Popup de suscripción ---------- */
+.subscribe-popup{
+  position:fixed;
+  z-index:15;
+  top:24px;
+  left:50%;
+  display:flex;
+  align-items:center;
+  gap:16px;
+  padding:16px 30px;
+  max-width:520px;
+  background:linear-gradient(90deg, var(--accent-2), var(--accent));
+  border-radius:999px;
+  box-shadow:0 16px 40px rgba(0,0,0,0.45);
+  color:#fff;
+  transform:translate(-50%, -140%);
+  transition:transform .7s cubic-bezier(.22,1,.36,1);
+  pointer-events:none;
+}
+.subscribe-popup.visible{
+  transform:translate(-50%, 0);
+}
+.subscribe-icon{
+  width:30px;
+  height:30px;
+  flex:0 0 auto;
+  animation:bellring 1.8s ease-in-out infinite;
+  transform-origin:50% 0%;
+}
+@keyframes bellring{
+  0%,50%,100%{transform:rotate(0deg);}
+  10%{transform:rotate(14deg);}
+  20%{transform:rotate(-11deg);}
+  30%{transform:rotate(7deg);}
+  40%{transform:rotate(-4deg);}
+}
+.subscribe-title{
+  font-size:19px;
+  font-weight:800;
+  letter-spacing:.5px;
+}
+.subscribe-sub{
+  font-size:13px;
+  color:rgba(255,255,255,0.9);
+  margin-top:2px;
+}
+
 /* ---------- Autoplay gate (solo navegador normal, no OBS) ---------- */
 .autoplay-gate{
   position:fixed;

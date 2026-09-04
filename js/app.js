@@ -7,7 +7,8 @@ const CONFIG = {
   musicScanUrl: "music/playlist.php", // metodo principal: escanea /music en vivo (requiere PHP)
   musicDirUrl: "music/",              // respaldo: listado de directorio del server (sin PHP)
   playlistUrl: "music/playlist.json", // overrides de titulo/artista + respaldo si no hay PHP ni listado
-  newsUrl: "news/news.json",
+  newsUrl: "news/news.json",       // noticias cargadas a mano
+  newsRssUrl: "news/rss.json",     // noticias auto-generadas desde el RSS del sitio (opcional)
   backgroundsScanUrl: "backgrounds/playlist.php", // metodo principal: escanea /backgrounds en vivo (requiere PHP)
   backgroundsDirUrl: "backgrounds/",              // respaldo: listado de directorio del server (sin PHP)
   backgroundsPlaylistUrl: "backgrounds/playlist.json", // respaldo si no hay PHP ni listado
@@ -295,17 +296,27 @@ function isNewsItemFresh(item) {
   return ageMs <= CONFIG.newsMaxAgeDays * 24 * 60 * 60 * 1000;
 }
 
-async function loadNews() {
+// Lee un archivo de noticias en JSON (array, o { news: [...] }). Si
+// no existe o falla, devuelve una lista vacia en vez de romper todo -
+// asi news/rss.json puede no existir todavia (o fallar el RSS puntual)
+// sin afectar a las noticias cargadas a mano, y viceversa.
+async function fetchNewsFile(url) {
   try {
-    const res = await fetch(CONFIG.newsUrl + "?t=" + Date.now());
-    if (!res.ok) throw new Error("No se pudo cargar news.json");
+    const res = await fetch(url + "?t=" + Date.now());
+    if (!res.ok) return [];
     const data = await res.json();
-    const rawList = Array.isArray(data) ? data : data.news || [];
-    newsList = rawList.filter(isNewsItemFresh);
-  } catch (err) {
-    console.error("Error cargando noticias:", err);
-    newsList = [];
+    return Array.isArray(data) ? data : data.news || [];
+  } catch {
+    return [];
   }
+}
+
+async function loadNews() {
+  const [manual, rss] = await Promise.all([
+    fetchNewsFile(CONFIG.newsUrl),
+    fetchNewsFile(CONFIG.newsRssUrl),
+  ]);
+  newsList = manual.concat(rss).filter(isNewsItemFresh);
 }
 
 // Agrega los parametros UTM de tracking al link antes de generar el QR,

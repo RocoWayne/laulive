@@ -16,8 +16,11 @@ js/impressions.js        registro de impresiones de /backgrounds (localStorage)
 stats.html              panel para ver/exportar las impresiones de publicidad
 music/                 poné acá tus archivos de audio (mp3, m4a, ogg, wav, flac)
 music/playlist.json     lista de canciones (se autogenera con el script)
-news/news.json          lista de noticias a mostrar
+news/news.json          noticias cargadas a mano
+news/rss.json           noticias auto-generadas desde el RSS de laubfal.com
 news/images/            imágenes locales de noticias (opcional)
+scripts/generate_news_from_rss.py        lee el RSS y actualiza news/rss.json
+.github/workflows/update-news-rss.yml    corre ese script cada 30 min (ver mas abajo)
 backgrounds/            poné acá las publicidades: imagen o video mudo
 backgrounds/playlist.json   lista de fondos locales (se autogenera con el script)
 backgrounds/external.json   fondos alojados afuera del repo (opcional, a mano)
@@ -175,6 +178,32 @@ el reloj y el reproductor de música siguen visibles arriba de todo.
   una en pantalla).
 - El color de fondo plano de la pantalla de noticias se ajusta en
   `css/style.css` → `:root` → `--news-flat-bg`.
+
+### Noticias automáticas desde el RSS de laubfal.com
+
+Además de `news.json` (a mano), la página lee `news/rss.json` y
+mezcla ambas listas en la rotación. `news/rss.json` se genera solo:
+un GitHub Action corre cada 30 minutos, lee
+`https://laubfal.com/feed/`, y actualiza el archivo con las notas más
+recientes del sitio (título, link, fecha e imagen destacada si el
+feed la trae) — sin pisar nunca lo que cargaste a mano en
+`news.json`.
+
+- Si el feed falla puntualmente o viene con un formato inesperado, el
+  script no toca `news/rss.json` (queda como estaba) en vez de
+  vaciarlo.
+- Las notas del RSS expiran solas igual que las manuales (ver
+  `newsMaxAgeDays` arriba), así que no hace falta limpiar nada.
+- **Importante**: el trigger automático (`schedule`, cada 30 min) de
+  GitHub Actions **solo corre sobre la rama por defecto del repo**
+  (normalmente `main`). Mientras este workflow viva en una rama
+  aparte, no se dispara solo — para probarlo antes de mergear, andá a
+  la pestaña **Actions** del repo → "Actualizar noticias desde el RSS
+  de laubfal.com" → **Run workflow**.
+- Se puede correr a mano en cualquier momento con
+  `python3 scripts/generate_news_from_rss.py`.
+- El intervalo (30 min) se ajusta en
+  `.github/workflows/update-news-rss.yml` (línea `cron`).
 
 ## 3. Cargar publicidades de fondo
 

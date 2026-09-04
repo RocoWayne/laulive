@@ -19,7 +19,8 @@ music/playlist.json     lista de canciones (se autogenera con el script)
 news/news.json          lista de noticias a mostrar
 news/images/            imágenes locales de noticias (opcional)
 backgrounds/            poné acá las publicidades: imagen o video mudo
-backgrounds/playlist.json   lista de fondos (se autogenera con el script)
+backgrounds/playlist.json   lista de fondos locales (se autogenera con el script)
+backgrounds/external.json   fondos alojados afuera del repo (opcional, a mano)
 scripts/generate_playlist.py             escanea /music y actualiza playlist.json
 scripts/generate_backgrounds_playlist.py escanea /backgrounds y actualiza su playlist.json
 .github/workflows/update-playlists.yml   corre esos scripts solo al subir archivos (ver mas abajo)
@@ -193,6 +194,39 @@ python3 scripts/generate_backgrounds_playlist.py
   que la página funcione.
 - El tiempo que queda cada imagen se ajusta en `js/app.js` → `CONFIG` →
   `backgroundImageDurationMs`.
+
+### Videos alojados afuera del repo (evitar subir archivos pesados a git)
+
+Si no querés inflar el repositorio con videos pesados, podés alojarlos
+en otro lado (GitHub Releases, Google Drive, Dropbox, Cloudflare R2,
+etc.) y declarar la URL en **`backgrounds/external.json`** en vez de
+subir el archivo a `/backgrounds`:
+
+```json
+[
+  "https://github.com/tu-usuario/tu-repo/releases/download/spots/sponsor1.mp4",
+  { "url": "https://drive.google.com/uc?export=download&id=XXXX", "type": "video" }
+]
+```
+
+- Podés poner directamente la URL como string si termina en una
+  extensión reconocible (`.mp4`, `.jpg`, etc.).
+- Si la URL no tiene extensión clara (por ejemplo, un link de descarga
+  de Google Drive), usá el formato `{ "url": "...", "type": "video" }`
+  para indicar el tipo a mano.
+- Estos fondos externos se mezclan con los que ya haya en
+  `/backgrounds` y rotan igual que el resto (mismos tiempos, mismo
+  mute forzado en video, misma medición de impresiones en
+  `stats.html`).
+- **Recomendado para alojar el video**: GitHub Releases del mismo
+  repo — es gratis, soporta hasta 2GB por archivo, y a diferencia de
+  subir el archivo directo a `/backgrounds`, no infla el historial de
+  git con binarios pesados en cada commit. Se crea desde la pestaña
+  "Releases" del repositorio ("Add file" al crear un release) y se
+  copia el link de descarga del archivo subido.
+- Ojo con no usar YouTube para esto: al embeberlo, YouTube puede
+  insertar sus propios anuncios sobre el video en cualquier momento,
+  lo cual arruinaría el spot pago.
 
 ### Contar impresiones (para reportarle a un sponsor)
 

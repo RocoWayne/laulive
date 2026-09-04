@@ -11,6 +11,7 @@ const CONFIG = {
   backgroundsScanUrl: "backgrounds/playlist.php", // metodo principal: escanea /backgrounds en vivo (requiere PHP)
   backgroundsDirUrl: "backgrounds/",              // respaldo: listado de directorio del server (sin PHP)
   backgroundsPlaylistUrl: "backgrounds/playlist.json", // respaldo si no hay PHP ni listado
+  backgroundsExternalUrl: "backgrounds/external.json", // fondos alojados afuera del repo (opcional)
   playlistRefreshMs: 2 * 60 * 1000,   // re-chequear /music cada 2 min
   newsRefreshMs: 3 * 60 * 1000,       // releer news.json cada 3 min
   newsIntervalMs: 15 * 60 * 1000,     // cada cuanto se dispara un bloque de noticias
@@ -369,11 +370,46 @@ let backgrounds = [];
 let currentBackground = null;
 let bgAdvanceTimer = null;
 
-function backgroundType(file) {
-  const ext = file.slice(file.lastIndexOf(".")).toLowerCase();
+function backgroundType(fileOrUrl) {
+  // Corta query string / hash antes de mirar la extension (una URL
+  // externa puede traer "?algo=valor" despues del nombre de archivo).
+  const clean = fileOrUrl.split(/[?#]/)[0];
+  const ext = clean.slice(clean.lastIndexOf(".")).toLowerCase();
   if (VALID_VIDEO_EXT.includes(ext)) return "video";
   if (VALID_IMAGE_EXT.includes(ext)) return "image";
   return null;
+}
+
+function isExternalUrl(fileOrUrl) {
+  return /^https?:\/\//i.test(fileOrUrl);
+}
+
+// backgrounds/external.json (opcional): fondos alojados afuera del repo
+// (GitHub Releases, Drive, Cloudflare R2, etc.), para no subir videos
+// pesados a git. Cada entrada es una URL completa, o
+// { "url": "...", "type": "video" } cuando la URL no termina en una
+// extension reconocible (ej. un link de descarga de Google Drive) y
+// hace falta indicar el tipo a mano.
+async function loadExternalBackgrounds() {
+  try {
+    const res = await fetch(CONFIG.backgroundsExternalUrl + "?t=" + Date.now());
+    if (!res.ok) return [];
+    const data = await res.json();
+    const list = Array.isArray(data) ? data : data.items || [];
+    return list
+      .map((entry) => {
+        if (typeof entry === "string") {
+          return { file: entry, type: backgroundType(entry) };
+        }
+        if (entry && entry.url) {
+          return { file: entry.url, type: entry.type || backgroundType(entry.url) };
+        }
+        return null;
+      })
+      .filter((item) => item && item.type);
+  } catch {
+    return [];
+  }
 }
 
 async function loadBackgroundsFromPhp() {
@@ -412,9 +448,13 @@ async function loadBackgrounds() {
     files = await scanDirectory(CONFIG.backgroundsDirUrl, VALID_BACKGROUND_EXT);
   }
 
-  backgrounds = files
+  const localItems = files
     .map((file) => ({ file, type: backgroundType(file) }))
     .filter((item) => item.type !== null);
+
+  const externalItems = await loadExternalBackgrounds();
+
+  backgrounds = localItems.concat(externalItems);
 }
 
 function pickNextBackground() {
@@ -440,7 +480,9 @@ function advanceBackground() {
 function showBackground(item) {
   currentBackground = item;
   recordBackgroundImpression(item.file); // para el reporte de impresiones (ver stats.html)
-  const src = CONFIG.backgroundsDirUrl + encodeURIComponent(item.file);
+  const src = isExternalUrl(item.file)
+    ? item.file
+    : CONFIG.backgroundsDirUrl + encodeURIComponent(item.file);
 
   if (item.type === "video") {
     bgImage.classList.remove("active");

@@ -12,6 +12,7 @@ on:
       - "backgrounds/**"
       - "!music/playlist.json"
       - "!backgrounds/playlist.json"
+  workflow_dispatch: {} # permite correrlo a mano desde la pestaña Actions
 
 permissions:
   contents: write

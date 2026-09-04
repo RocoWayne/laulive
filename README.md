@@ -20,7 +20,7 @@ news/news.json          noticias cargadas a mano
 news/rss.json           noticias auto-generadas desde el RSS de laubfal.com
 news/images/            imágenes locales de noticias (opcional)
 scripts/generate_news_from_rss.py        lee el RSS y actualiza news/rss.json
-.github/workflows/update-news-rss.yml    corre ese script cada 30 min (ver mas abajo)
+.github/workflows/update-news-rss.yml    corre ese script cada 4 horas (ver mas abajo)
 backgrounds/            poné acá las publicidades: imagen o video mudo
 backgrounds/playlist.json   lista de fondos locales (se autogenera con el script)
 backgrounds/external.json   fondos alojados afuera del repo (opcional, a mano)
@@ -163,6 +163,8 @@ el reloj y el reproductor de música siguen visibles arriba de todo.
   transmisión (`?utm_source=youtube&utm_medium=qrscan&utm_campaign=lasocia`,
   o con `&` si el link ya tenía otros parámetros). Se ajusta en
   `js/app.js` → `CONFIG` → `qrUtmParams`.
+  El QR tiene un fulgor pulsante alrededor para invitar a escanearlo
+  — se ajusta en `css/style.css` → `@keyframes qr-glow`.
 - La página relee `news.json` sola cada 3 minutos, así que agregar o
   sacar noticias de la lista se refleja solo (sin reiniciar OBS).
 - **Al abrir la página** ya arranca mostrando un bloque de noticias
@@ -183,7 +185,7 @@ el reloj y el reproductor de música siguen visibles arriba de todo.
 
 Además de `news.json` (a mano), la página lee `news/rss.json` y
 mezcla ambas listas en la rotación. `news/rss.json` se genera solo:
-un GitHub Action corre cada 30 minutos, lee
+un GitHub Action corre cada 4 horas, lee
 `https://laubfal.com/feed/`, y actualiza el archivo con las notas más
 recientes del sitio (título, link, fecha e imagen destacada si el
 feed la trae) — sin pisar nunca lo que cargaste a mano en
@@ -194,7 +196,7 @@ feed la trae) — sin pisar nunca lo que cargaste a mano en
   vaciarlo.
 - Las notas del RSS expiran solas igual que las manuales (ver
   `newsMaxAgeDays` arriba), así que no hace falta limpiar nada.
-- **Importante**: el trigger automático (`schedule`, cada 30 min) de
+- **Importante**: el trigger automático (`schedule`, cada 4 horas) de
   GitHub Actions **solo corre sobre la rama por defecto del repo**
   (normalmente `main`). Mientras este workflow viva en una rama
   aparte, no se dispara solo — para probarlo antes de mergear, andá a
@@ -202,7 +204,7 @@ feed la trae) — sin pisar nunca lo que cargaste a mano en
   de laubfal.com" → **Run workflow**.
 - Se puede correr a mano en cualquier momento con
   `python3 scripts/generate_news_from_rss.py`.
-- El intervalo (30 min) se ajusta en
+- El intervalo (4 horas) se ajusta en
   `.github/workflows/update-news-rss.yml` (línea `cron`).
 
 ## 3. Cargar publicidades de fondo

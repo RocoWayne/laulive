@@ -274,7 +274,18 @@ html,body{
   border-radius:16px;
   background:#fff;
   padding:12px;
-  box-shadow:0 12px 30px rgba(0,0,0,0.4);
+  animation:qr-glow 2s ease-in-out infinite;
+}
+/* Fulgor pulsante para invitar a escanear */
+@keyframes qr-glow{
+  0%, 100%{
+    box-shadow:0 12px 30px rgba(0,0,0,0.4), 0 0 0 0 rgba(255,255,255,0.55);
+    transform:scale(1);
+  }
+  50%{
+    box-shadow:0 12px 30px rgba(0,0,0,0.4), 0 0 26px 10px rgba(255,255,255,0.4);
+    transform:scale(1.035);
+  }
 }
 .news-qr-label{
   font-size:22px;

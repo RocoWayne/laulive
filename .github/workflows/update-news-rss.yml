@@ -7,7 +7,7 @@ name: Actualizar noticias desde el RSS de laubfal.com
 # con "Run workflow" en la pestaña Actions (workflow_dispatch, abajo).
 on:
   schedule:
-    - cron: "*/30 * * * *" # cada 30 minutos
+    - cron: "0 */4 * * *" # cada 4 horas
   workflow_dispatch: {}
 
 permissions:

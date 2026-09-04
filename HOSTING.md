@@ -99,3 +99,109 @@ como el contenido no es sensible (es un overlay de música y
 noticias, no datos privados), puede alcanzar si no te preocupa que
 alguien puntual la vea. La Opción A/B de arriba es la recomendada si
 querés estar tranquilo.
+
+## Correr todo local, con el repo privado
+
+Otra opción — más privada todavía que cualquiera de las anteriores —
+es no publicar la página en ningún lado con URL pública: pasar el
+repositorio a **privado** en GitHub, y correr la página directamente
+en la PC que tiene OBS abierto, como venimos haciendo para probar
+(`python3 -m http.server`). Así:
+
+- El código fuente queda privado (solo lo ven los colaboradores del
+  repo).
+- La página en funcionamiento **no tiene ninguna URL pública**: vive
+  únicamente en `localhost` de esa PC, no accesible desde internet en
+  absoluto. Es más privado que GitHub Pages, que — aunque el repo sea
+  privado — en la mayoría de los planes de GitHub sigue publicando el
+  sitio en una URL pública (`usuario.github.io/...`) salvo que tengas
+  GitHub Enterprise.
+
+Para que esto siga siendo "automático" como lo armamos (subís
+archivos por GitHub y se reflejan solos, sin tocar la PC de
+streaming), hace falta una pieza extra: la PC necesita bajar sola los
+cambios del repo cada tanto (`git pull`), ya que a diferencia de
+GitHub Pages, nadie los empuja hacia ella.
+
+### 1. Pasar el repo a privado
+
+**Settings → General → Danger Zone → Change visibility → Make
+private.** Solo puede hacerlo alguien con permisos de administrador
+del repositorio.
+
+### 2. Clonar el repo en la PC de streaming (una sola vez)
+
+Como el repo es privado, hace falta autenticarse. Lo más simple es
+generar una clave SSH y agregarla a tu cuenta de GitHub (**Settings →
+SSH and GPG keys**), y despues clonar con la URL SSH:
+
+```bash
+git clone git@github.com:tu-usuario/laulive.git
+```
+
+(La alternativa es un token de acceso personal en vez de SSH — sirve
+igual, pero hay que volver a escribirlo cada vez que git lo pida a
+menos que uses un gestor de credenciales.)
+
+### 3. Sincronización automática (`git pull` cada 2-3 minutos)
+
+Dejé listo `scripts/sync-local.sh`, que solo hace `git pull` y anota
+un log. Se automatiza con `cron`:
+
+```bash
+crontab -e
+```
+
+Y agregar (ajustando la ruta a donde clonaste el repo):
+
+```
+*/2 * * * * /usr/bin/bash /ruta/a/laulive/scripts/sync-local.sh
+```
+
+### 4. Servidor local persistente
+
+Igual que para probarlo, pero pensado para quedar corriendo 24/7:
+
+```bash
+python3 -m http.server 8080
+```
+
+Conviene dejarlo como un servicio de `systemd` (en vez de una
+terminal abierta a mano), para que si la PC se reinicia, el servidor
+vuelva a levantar solo. Un ejemplo mínimo de unit file:
+
+```ini
+# /etc/systemd/system/laulive.service
+[Unit]
+Description=Servidor local de laulive
+After=network.target
+
+[Service]
+WorkingDirectory=/ruta/a/laulive
+ExecStart=/usr/bin/python3 -m http.server 8080
+Restart=always
+User=tu-usuario
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Y activarlo con:
+
+```bash
+sudo systemctl enable --now laulive.service
+```
+
+### 5. OBS
+
+Sin cambios: la fuente de navegador sigue apuntando a
+`http://localhost:8080/index.html`, exactamente como en las pruebas
+locales que ya venimos haciendo.
+
+**Con esto, todas las automatizaciones siguen funcionando igual**: el
+GitHub Action sigue regenerando los `playlist.json` al subir archivos
+(corre en los servidores de GitHub, no depende de que el repo sea
+público), y el `git pull` cada 2 minutos en la PC de streaming hace
+que esos cambios lleguen solos a la copia que lee OBS — el mismo
+flujo de "subís un archivo y se refleja solo", sin URL pública de por
+medio.

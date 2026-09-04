@@ -14,6 +14,6 @@
 # 4. No hace falta renombrar nada mas: cPanel/Apache lo toma solo.
 
 AuthType Basic
-AuthName "Laura Ubfal Live - Acceso restringido"
+AuthName "Acceso restringido"
 AuthUserFile /home/TU_USUARIO_DE_HOSTING/.htpasswd
 Require valid-user

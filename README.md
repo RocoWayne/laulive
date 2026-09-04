@@ -1,4 +1,4 @@
-# Laura Ubfal Live — Fuente de navegador para OBS
+# Fuente de navegador para OBS — Música 24/7 + Noticias
 
 Página HTML pensada como **Browser Source** de OBS para una transmisión
 24/7: reproduce música en aleatorio con el título en pantalla, muestra
@@ -104,9 +104,16 @@ Esa corrección queda guardada aunque vuelvas a correr el script.
 ## 2. Cargar noticias
 
 Editá `news/news.json`. Es una lista: cargá ahí todas las noticias que
-quieras tener disponibles y la página las va mostrando **una por vez,
-rotando en orden** — cada `newsIntervalMs` aparece la siguiente de la
-lista (y cuando termina, vuelve a arrancar desde la primera).
+quieras tener disponibles y la página las va mostrando **en bloques**,
+rotando en orden (y cuando termina la lista, vuelve a arrancar desde
+la primera).
+
+Pensada para verse bien en un TV: cuando le toca a un bloque de
+noticias, ocupa **toda la pantalla** con un fondo de color plano
+(reemplaza momentáneamente el slideshow de publicidades de fondo, que
+sigue pausado hasta que termina el bloque) — título grande, foto
+grande y un QR grande y legible para escanear desde lejos. La marca,
+el reloj y el reproductor de música siguen visibles arriba de todo.
 
 ```json
 [
@@ -131,16 +138,25 @@ lista (y cuando termina, vuelve a arrancar desde la primera).
 - **`text`**: el titular/texto corto que se muestra. Si es muy largo,
   se corta con puntos suspensivos a partir de la 5ª línea — mejor
   mantenerlo breve (1-2 oraciones).
-- **`link`**: la URL de la noticia completa en la web de Laura Ubfal.
+- **`link`**: la URL de la noticia completa en el sitio de noticias.
   Se convierte **automáticamente en un código QR** en pantalla (no
   hace falta generar el QR vos). Si una noticia no tiene `link`, se
   muestra sin QR.
 - La página relee `news.json` sola cada 3 minutos, así que agregar o
   sacar noticias de la lista se refleja solo (sin reiniciar OBS).
-- Por defecto: una noticia aparece **cada 10 minutos** y queda visible
-  **30 segundos**. Se puede ajustar en `js/app.js` → `CONFIG`:
-  `newsIntervalMs` (frecuencia) y `newsDisplayMs` (duración en
-  pantalla).
+- **Al abrir la página** ya arranca mostrando un bloque de noticias
+  (por defecto, las primeras 2 de la lista) antes de empezar el
+  slideshow de fondos.
+- Después, **cada 15 minutos** se dispara otro bloque de 2 noticias
+  (retomando la rotación donde quedó la vez anterior), pausando el
+  slideshow de fondos mientras dura y retomándolo solo al terminar.
+  Cada noticia del bloque queda **30 segundos** en pantalla.
+- Todo esto se ajusta en `js/app.js` → `CONFIG`: `newsIntervalMs`
+  (cada cuánto se dispara un bloque), `newsItemsPerBlock` (cuántas
+  noticias seguidas por bloque) y `newsDisplayMs` (cuánto dura cada
+  una en pantalla).
+- El color de fondo plano de la pantalla de noticias se ajusta en
+  `css/style.css` → `:root` → `--news-flat-bg`.
 
 ## 3. Cargar publicidades de fondo
 
@@ -234,8 +250,9 @@ ningún script.
 |---|---|
 | `playlistRefreshMs` | cada cuánto relee `playlist.json` |
 | `newsRefreshMs` | cada cuánto relee `news.json` |
-| `newsIntervalMs` | cada cuánto aparece una noticia en pantalla |
-| `newsDisplayMs` | cuánto tiempo queda visible cada noticia |
+| `newsIntervalMs` | cada cuánto se dispara un bloque de noticias |
+| `newsItemsPerBlock` | cuántas noticias seguidas se muestran por bloque |
+| `newsDisplayMs` | cuánto tiempo queda visible cada noticia dentro del bloque |
 | `qrSize` | tamaño en px del QR generado |
 | `backgroundsRefreshMs` | cada cuánto relee la carpeta `backgrounds/` |
 | `backgroundImageDurationMs` | cuánto queda cada imagen de fondo antes de pasar a la siguiente |

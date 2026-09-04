@@ -1,6 +1,6 @@
 // ============================================================
-// Laura Ubfal Live — fuente de navegador OBS
-// Reproductor de música 24/7 + overlay de noticias con QR
+// Fuente de navegador OBS
+// Reproductor de música 24/7 + bloques de noticias con QR
 // ============================================================
 
 const CONFIG = {
@@ -13,8 +13,9 @@ const CONFIG = {
   backgroundsPlaylistUrl: "backgrounds/playlist.json", // respaldo si no hay PHP ni listado
   playlistRefreshMs: 2 * 60 * 1000,   // re-chequear /music cada 2 min
   newsRefreshMs: 3 * 60 * 1000,       // releer news.json cada 3 min
-  newsIntervalMs: 10 * 60 * 1000,     // mostrar una noticia cada 10 min
-  newsDisplayMs: 30 * 1000,           // cuánto queda visible cada noticia
+  newsIntervalMs: 15 * 60 * 1000,     // cada cuanto se dispara un bloque de noticias
+  newsItemsPerBlock: 2,                // cuantas noticias seguidas se muestran en cada bloque
+  newsDisplayMs: 30 * 1000,           // cuánto queda visible cada noticia dentro del bloque
   backgroundsRefreshMs: 2 * 60 * 1000,  // re-chequear /backgrounds cada 2 min
   backgroundImageDurationMs: 35 * 1000, // cuanto queda cada imagen antes de pasar a la siguiente
   qrSize: 200,
@@ -241,14 +242,20 @@ tickClock();
 setInterval(tickClock, 15000);
 
 // ---------------- Noticias ----------------
+// Pantalla completa que reemplaza el fondo de publicidades mientras
+// esta activa. Se muestran CONFIG.newsItemsPerBlock noticias seguidas
+// ("bloque"), pausando el slideshow de /backgrounds, y al terminar el
+// bloque el slideshow continua solo. Arranca con un bloque apenas
+// carga la pagina, y despues se repite cada CONFIG.newsIntervalMs.
 
-const newsCard = document.getElementById("newsCard");
+const newsScreen = document.getElementById("newsScreen");
 const newsImage = document.getElementById("newsImage");
 const newsText = document.getElementById("newsText");
 const newsQr = document.getElementById("newsQr");
 
 let newsList = [];
 let newsIndex = 0;
+let newsBlockRunning = false;
 
 async function loadNews() {
   try {
@@ -267,45 +274,66 @@ function qrUrlFor(link) {
   return `https://api.qrserver.com/v1/create-qr-code/?size=${CONFIG.qrSize}x${CONFIG.qrSize}&data=${encoded}`;
 }
 
-const newsMedia = document.querySelector(".news-media");
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
-function showNews() {
-  if (!newsList || newsList.length === 0) return;
-  const item = newsList[newsIndex % newsList.length];
-  newsIndex++;
-  if (!item || (!item.text && !item.image)) return;
+// Muestra una noticia y espera CONFIG.newsDisplayMs antes de resolver.
+function showNewsItem(item) {
+  if (!item || (!item.text && !item.image)) return Promise.resolve();
 
-  // Si la imagen no carga (link roto, 404), ocultamos el bloque de
-  // foto en vez de mostrar el ícono de imagen rota.
+  // Si la imagen no carga (link roto, 404), la ocultamos en vez de
+  // mostrar el ícono de imagen rota.
   if (item.image) {
-    newsImage.onerror = () => { newsMedia.style.display = "none"; };
-    newsImage.onload = () => { newsMedia.style.display = ""; };
+    newsImage.onerror = () => { newsImage.style.display = "none"; };
+    newsImage.onload = () => { newsImage.style.display = ""; };
     newsImage.src = item.image;
   } else {
-    newsMedia.style.display = "none";
+    newsImage.style.display = "none";
   }
 
   newsText.textContent = item.text || "";
 
   if (item.link) {
     newsQr.src = qrUrlFor(item.link);
-    newsCard.classList.remove("no-link");
+    newsScreen.classList.remove("no-link");
   } else {
-    newsCard.classList.add("no-link");
+    newsScreen.classList.add("no-link");
   }
 
-  newsCard.classList.add("visible");
+  newsScreen.classList.add("visible");
+  return wait(CONFIG.newsDisplayMs);
+}
 
-  setTimeout(() => {
-    newsCard.classList.remove("visible");
-  }, CONFIG.newsDisplayMs);
+// Corre un bloque completo de noticias: pausa el slideshow de fondos,
+// muestra hasta newsItemsPerBlock noticias una atras de otra, y al
+// terminar retoma el slideshow. Si no hay noticias cargadas, no hace
+// nada mas que asegurarse de que el slideshow este corriendo.
+async function runNewsBlock() {
+  if (newsBlockRunning) return;
+  newsBlockRunning = true;
+  pauseBackgroundRotation();
+
+  if (newsList && newsList.length > 0) {
+    const count = Math.min(CONFIG.newsItemsPerBlock, newsList.length);
+    for (let i = 0; i < count; i++) {
+      const item = newsList[newsIndex % newsList.length];
+      newsIndex++;
+      await showNewsItem(item);
+      newsScreen.classList.remove("visible");
+      await wait(700); // pausa breve entre una noticia y la siguiente
+    }
+  }
+
+  newsBlockRunning = false;
+  resumeBackgroundRotation();
 }
 
 setInterval(async () => {
   await loadNews();
 }, CONFIG.newsRefreshMs);
 
-setInterval(showNews, CONFIG.newsIntervalMs);
+setInterval(runNewsBlock, CONFIG.newsIntervalMs);
 
 // ---------------- Fondos rotativos (publicidades) ----------------
 // Imagenes y video mudo de /backgrounds, a pantalla completa detras de
@@ -410,6 +438,23 @@ function showBackground(item) {
   }
 }
 
+// Pausa el slideshow de fondos (usado mientras se muestra un bloque de
+// noticias, que ocupa toda la pantalla y lo tapa). No hace falta
+// ocultar nada explicitamente: la pantalla de noticias ya cubre todo.
+function pauseBackgroundRotation() {
+  if (bgAdvanceTimer) {
+    clearTimeout(bgAdvanceTimer);
+    bgAdvanceTimer = null;
+  }
+  if (!bgVideo.paused) bgVideo.pause();
+}
+
+// Retoma el slideshow de fondos despues de un bloque de noticias (o lo
+// arranca por primera vez).
+function resumeBackgroundRotation() {
+  advanceBackground();
+}
+
 setInterval(async () => {
   await loadBackgrounds();
 }, CONFIG.backgroundsRefreshMs);
@@ -423,7 +468,8 @@ setInterval(async () => {
     trackTitleEl.textContent = "Sin canciones en /music";
     trackArtistEl.textContent = "Agregá archivos y actualizá playlist.json";
   }
-  advanceBackground();
-  // Primera noticia recién a los newsIntervalMs, no de arranque,
-  // para no tapar la pantalla apenas abre OBS.
+  // Arranca con un bloque de noticias (newsItemsPerBlock seguidas); al
+  // terminar, el propio bloque deja andando el slideshow de fondos.
+  // El próximo bloque de noticias es a los newsIntervalMs desde acá.
+  await runNewsBlock();
 })();

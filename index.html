@@ -41,20 +41,18 @@
     </div>
   </section>
 
-  <!-- Overlay de noticias -->
-  <aside class="news" id="newsCard">
-    <div class="news-media">
-      <img id="newsImage" src="" alt="">
+  <!-- Pantalla de noticias: reemplaza el fondo de publicidades cuando
+       esta activa (fondo de color plano, pensada para verse bien en
+       un TV). Titulo + imagen + QR grande para escanear. -->
+  <section class="news-screen" id="newsScreen">
+    <div class="news-tag">NOTICIA</div>
+    <img id="newsImage" class="news-image" src="" alt="">
+    <div class="news-text" id="newsText"></div>
+    <div class="news-qr-row">
+      <img id="newsQr" class="news-qr" src="" alt="Código QR">
+      <span class="news-qr-label">Escaneá el código<br>para leer la nota completa</span>
     </div>
-    <div class="news-body">
-      <div class="news-tag">NOTICIA</div>
-      <div class="news-text" id="newsText"></div>
-      <div class="news-qr-row">
-        <img id="newsQr" class="news-qr" src="" alt="Código QR">
-        <span class="news-qr-label">Escaneá para<br>leer la nota</span>
-      </div>
-    </div>
-  </aside>
+  </section>
 
   <audio id="audio" preload="auto"></audio>
 

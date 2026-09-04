@@ -38,17 +38,21 @@ def extract_image(item):
     la primera <img> dentro del contenido completo del post."""
     media = item.find("media:content", NS)
     if media is not None and media.get("url"):
-        return media.get("url")
+        return html.unescape(media.get("url"))
 
     enclosure = item.find("enclosure")
     if enclosure is not None and (enclosure.get("type") or "").startswith("image") and enclosure.get("url"):
-        return enclosure.get("url")
+        return html.unescape(enclosure.get("url"))
 
     content_el = item.find("content:encoded", NS)
     if content_el is not None and content_el.text:
-        match = re.search(r'<img[^>]+src="([^"]+)"', content_el.text)
+        # El contenido viene dentro de un CDATA: las entidades HTML
+        # (ej. "&#038;" en vez de "&") quedan como texto literal, el
+        # parser XML no las decodifica solo porque CDATA es justamente
+        # para no interpretar nada de eso.
+        match = re.search(r'<img[^>]+src=["\']([^"\']+)["\']', content_el.text)
         if match:
-            return match.group(1)
+            return html.unescape(match.group(1))
 
     return None
 

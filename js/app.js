@@ -316,7 +316,11 @@ async function loadNews() {
     fetchNewsFile(CONFIG.newsUrl),
     fetchNewsFile(CONFIG.newsRssUrl),
   ]);
-  newsList = manual.concat(rss).filter(isNewsItemFresh);
+  // Si una noticia cargada a mano ya cubre el mismo link que trajo el
+  // RSS, no la repetimos: la version manual (curada) gana.
+  const manualLinks = new Set(manual.map((item) => item && item.link).filter(Boolean));
+  const dedupedRss = rss.filter((item) => !item || !item.link || !manualLinks.has(item.link));
+  newsList = manual.concat(dedupedRss).filter(isNewsItemFresh);
 }
 
 // Agrega los parametros UTM de tracking al link antes de generar el QR,

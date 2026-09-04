@@ -194,6 +194,11 @@ python3 scripts/generate_backgrounds_playlist.py
   que la página funcione.
 - El tiempo que queda cada imagen se ajusta en `js/app.js` → `CONFIG` →
   `backgroundImageDurationMs`.
+- El cambio entre un fondo y el siguiente es un **crossfade real**
+  (disolve, ~1.1s), no un corte — funciona igual pasando de imagen a
+  imagen, de imagen a video o entre videos. Se ajusta en
+  `css/style.css` → `.bg-layer` (duración de la transición) y en
+  `js/app.js` → `BG_CROSSFADE_MS` (debe coincidir con ese valor).
 
 ### Videos alojados afuera del repo (evitar subir archivos pesados a git)
 

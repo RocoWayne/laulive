@@ -39,13 +39,21 @@ html,body{
 .bg-layer{
   position:absolute;
   inset:0;
+  opacity:0;
+  transition:opacity 1.1s ease;
+}
+.bg-layer.active{
+  opacity:1;
+  z-index:1; /* la capa que entra queda arriba durante el cruce */
+}
+.bg-layer-img,
+.bg-layer-video{
+  position:absolute;
+  inset:0;
   width:100%;
   height:100%;
   object-fit:cover;
-  opacity:0;
-  transition:opacity 1.2s ease;
 }
-.bg-layer.active{opacity:1;}
 
 .bg-glow{
   position:fixed;

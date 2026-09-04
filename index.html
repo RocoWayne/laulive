@@ -8,10 +8,18 @@
 </head>
 <body>
 
-  <!-- Fondo rotativo de publicidades (imagenes y video sin sonido) -->
+  <!-- Fondo rotativo de publicidades (imagenes y video sin sonido).
+       Dos capas alternadas para poder hacer un crossfade real entre
+       un fondo y el siguiente (sea imagen o video). -->
   <div class="bg-media" id="bgMedia">
-    <img id="bgImage" class="bg-layer" alt="">
-    <video id="bgVideo" class="bg-layer" muted playsinline preload="auto"></video>
+    <div class="bg-layer" id="bgLayerA">
+      <img class="bg-layer-img" alt="">
+      <video class="bg-layer-video" muted playsinline preload="auto"></video>
+    </div>
+    <div class="bg-layer" id="bgLayerB">
+      <img class="bg-layer-img" alt="">
+      <video class="bg-layer-video" muted playsinline preload="auto"></video>
+    </div>
   </div>
 
   <div class="bg-glow"></div>

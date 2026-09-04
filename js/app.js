@@ -387,11 +387,21 @@ setInterval(runNewsBlock, CONFIG.newsIntervalMs);
 // (WordPress) > backgrounds/playlist.json (GitHub Pages) > auto-escaneo
 // de directorio (solo pruebas locales).
 
-const bgImage = document.getElementById("bgImage");
-const bgVideo = document.getElementById("bgVideo");
-// Nunca debe sonar, desde el primer momento (ver tambien showBackground).
-bgVideo.muted = true;
-bgVideo.volume = 0;
+// Dos capas alternadas (cada una con su propio <img> y <video>) para
+// poder hacer un crossfade real entre un fondo y el siguiente, en vez
+// de cortar en seco al cambiar el src de un unico elemento.
+function makeLayer(id) {
+  const el = document.getElementById(id);
+  const img = el.querySelector(".bg-layer-img");
+  const video = el.querySelector(".bg-layer-video");
+  video.muted = true; // nunca debe sonar, desde el primer momento
+  video.volume = 0;
+  return { el, img, video };
+}
+
+const bgLayers = [makeLayer("bgLayerA"), makeLayer("bgLayerB")];
+let activeLayerIndex = 0;
+const BG_CROSSFADE_MS = 1100; // debe coincidir con la transition de .bg-layer en CSS
 
 let backgrounds = [];
 let currentBackground = null;
@@ -523,6 +533,31 @@ function advanceBackground() {
   if (next) showBackground(next);
 }
 
+// Apaga y limpia la capa que quedo debajo despues del cruce, para no
+// gastar red/CPU de mas reproduciendo un video invisible.
+function deactivateLayer(layer) {
+  layer.el.classList.remove("active");
+  layer.video.onended = null;
+  layer.video.onerror = null;
+  layer.video.pause();
+  layer.video.removeAttribute("src");
+  layer.img.onload = null;
+  layer.img.onerror = null;
+  layer.img.removeAttribute("src");
+}
+
+// Hace el crossfade real: la capa "idle" (ya con el contenido nuevo
+// cargado/listo) pasa a activa con una transicion de opacity, mientras
+// la que estaba activa se desvanece. Una vez terminado el cruce, se
+// apaga la que quedo abajo.
+function crossfadeTo(idleIndex) {
+  const outgoingIndex = activeLayerIndex;
+  bgLayers[idleIndex].el.classList.add("active");
+  bgLayers[outgoingIndex].el.classList.remove("active");
+  activeLayerIndex = idleIndex;
+  setTimeout(() => deactivateLayer(bgLayers[outgoingIndex]), BG_CROSSFADE_MS + 100);
+}
+
 function showBackground(item) {
   currentBackground = item;
   recordBackgroundImpression(item.file); // para el reporte de impresiones (ver stats.html)
@@ -530,40 +565,51 @@ function showBackground(item) {
     ? item.file
     : CONFIG.backgroundsDirUrl + encodeURIComponent(item.file);
 
+  const idleIndex = 1 - activeLayerIndex;
+  const idle = bgLayers[idleIndex];
+
   if (item.type === "video") {
-    bgImage.classList.remove("active");
+    idle.img.style.display = "none";
+    idle.video.style.display = "";
     // Los videos de /backgrounds NUNCA deben sonar, tengan o no pista
     // de audio. El atributo "muted" del <video> en el HTML ya lo hace,
     // pero lo reforzamos tambien por JS (propiedad, no solo atributo)
     // para que quede garantizado pase lo que pase.
-    bgVideo.muted = true;
-    bgVideo.volume = 0;
-    bgVideo.onended = advanceBackground;
-    bgVideo.onerror = () => {
+    idle.video.muted = true;
+    idle.video.volume = 0;
+    idle.video.onended = advanceBackground;
+    idle.video.onerror = () => {
       recordBackgroundFailure(item.file);
       setTimeout(advanceBackground, 1500);
     };
-    bgVideo.src = src;
-    bgVideo.currentTime = 0;
-    bgVideo.play().catch(() => {
-      recordBackgroundFailure(item.file);
-      setTimeout(advanceBackground, 1500);
-    });
-    bgVideo.classList.add("active");
+    // Recien cruzamos cuando el video efectivamente arranco a
+    // reproducirse, para no hacer fade-in a un frame negro/vacio.
+    idle.video.oncanplay = () => {
+      idle.video.oncanplay = null;
+      idle.video
+        .play()
+        .then(() => crossfadeTo(idleIndex))
+        .catch(() => {
+          recordBackgroundFailure(item.file);
+          setTimeout(advanceBackground, 1500);
+        });
+    };
+    idle.video.src = src;
+    idle.video.currentTime = 0;
     // Watchdog: si el video se cuelga a mitad de reproduccion (nunca
     // dispara "ended" ni "error"), no queremos que el fondo quede
     // congelado ahi para siempre. advanceBackground() ya cancela este
     // timer si "ended" llega antes.
     bgAdvanceTimer = setTimeout(advanceBackground, CONFIG.maxVideoDurationMs);
   } else {
-    bgVideo.pause();
-    bgVideo.classList.remove("active");
-    bgImage.onload = () => bgImage.classList.add("active");
-    bgImage.onerror = () => {
+    idle.video.style.display = "none";
+    idle.img.style.display = "";
+    idle.img.onload = () => crossfadeTo(idleIndex);
+    idle.img.onerror = () => {
       recordBackgroundFailure(item.file);
       setTimeout(advanceBackground, 1000);
     };
-    bgImage.src = src;
+    idle.img.src = src;
     bgAdvanceTimer = setTimeout(advanceBackground, CONFIG.backgroundImageDurationMs);
   }
 }
@@ -576,7 +622,8 @@ function pauseBackgroundRotation() {
     clearTimeout(bgAdvanceTimer);
     bgAdvanceTimer = null;
   }
-  if (!bgVideo.paused) bgVideo.pause();
+  const active = bgLayers[activeLayerIndex];
+  if (!active.video.paused) active.video.pause();
 }
 
 // Retoma el slideshow de fondos despues de un bloque de noticias (o lo

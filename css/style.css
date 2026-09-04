@@ -1,12 +1,13 @@
 :root{
-  --bg-1:#0b0620;
-  --bg-2:#1a0e3d;
-  --accent:#ff2f92;
-  --accent-2:#7c3aed;
-  --accent-3:#22d3ee;
-  --text:#f5f3ff;
-  --text-dim:#c9c2e8;
-  --card-bg:rgba(20,12,45,0.72);
+  /* Paleta basada en el logo de Laubfal (magenta/fucsia sobre fondo oscuro) */
+  --bg-1:#1a0512;
+  --bg-2:#33081f;
+  --accent:#E6007E;    /* magenta principal del logo */
+  --accent-2:#9C1458;  /* fucsia oscuro / burdeos, tono del subtítulo */
+  --accent-3:#FF6FB5;  /* rosa claro para acentos y texto destacado */
+  --text:#fff2f8;
+  --text-dim:#e3a9c6;
+  --card-bg:rgba(38,7,24,0.74);
   --card-border:rgba(255,255,255,0.08);
 }
 
@@ -28,8 +29,8 @@ html,body{
   inset:0;
   z-index:-1;
   background:
-    radial-gradient(circle at 15% 85%, rgba(255,47,146,0.25), transparent 45%),
-    radial-gradient(circle at 85% 20%, rgba(34,211,238,0.20), transparent 40%),
+    radial-gradient(circle at 15% 85%, rgba(230,0,126,0.30), transparent 45%),
+    radial-gradient(circle at 85% 20%, rgba(255,111,181,0.22), transparent 40%),
     linear-gradient(160deg, var(--bg-1), var(--bg-2));
 }
 

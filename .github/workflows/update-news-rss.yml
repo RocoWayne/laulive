@@ -1,10 +1,11 @@
 name: Actualizar noticias desde el RSS de laubfal.com
 
-# Nota: el trigger "schedule" de GitHub Actions solo corre sobre lo
-# que este en la rama por defecto del repo (normalmente "main") — si
-# este workflow vive solo en una rama de feature, no se dispara solo
-# hasta que esa rama se mergee. Mientras tanto se puede probar a mano
-# con "Run workflow" en la pestaña Actions (workflow_dispatch, abajo).
+# Nota: el trigger "schedule" de GitHub Actions solo corre sobre la
+# rama por defecto del repo. En este repositorio esa rama por defecto
+# ya es la que tiene este workflow, asi que corre solo cada 4 horas
+# sin pasos extra. Si alguna vez cambia la rama por defecto, confirmar
+# que el schedule la siga usando. Tambien se puede disparar a mano con
+# "Run workflow" en la pestaña Actions (workflow_dispatch, abajo).
 on:
   schedule:
     - cron: "0 */4 * * *" # cada 4 horas

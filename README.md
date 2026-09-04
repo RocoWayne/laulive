@@ -196,10 +196,14 @@ feed la trae) — sin pisar nunca lo que cargaste a mano en
   vaciarlo.
 - Las notas del RSS expiran solas igual que las manuales (ver
   `newsMaxAgeDays` arriba), así que no hace falta limpiar nada.
-- **Importante**: el trigger automático (`schedule`, cada 4 horas) de
-  GitHub Actions **solo corre sobre la rama por defecto del repo**
-  (normalmente `main`). Mientras este workflow viva en una rama
-  aparte, no se dispara solo — para probarlo antes de mergear, andá a
+- El trigger automático (`schedule`) de GitHub Actions solo corre
+  sobre la **rama por defecto** del repo — en este repositorio esa
+  rama por defecto ya es `claude/obs-music-browser-laura-1hda5z` (no
+  hay una rama `main` separada), así que el schedule ya está activo
+  sin pasos extra. Si en algún momento cambian la rama por defecto
+  (por ejemplo, al mergear a un `main` nuevo), hay que confirmar que
+  el schedule siga corriendo ahí.
+- Para forzar una actualización sin esperar, o para probarlo, andá a
   la pestaña **Actions** del repo → "Actualizar noticias desde el RSS
   de laubfal.com" → **Run workflow**.
 - Se puede correr a mano en cualquier momento con

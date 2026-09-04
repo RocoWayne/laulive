@@ -19,6 +19,7 @@ const CONFIG = {
   newsDisplayMs: 30 * 1000,           // cuánto queda visible cada noticia dentro del bloque
   backgroundsRefreshMs: 2 * 60 * 1000,  // re-chequear /backgrounds cada 2 min
   backgroundImageDurationMs: 35 * 1000, // cuanto queda cada imagen antes de pasar a la siguiente
+  maxVideoDurationMs: 6 * 60 * 1000,    // watchdog: si un video se cuelga, forzar avance despues de esto
   qrSize: 200,
   qrUtmParams: "utm_source=youtube&utm_medium=qrscan&utm_campaign=lasocia", // tracking del QR de noticias
   subscribeFirstDelayMs: 60 * 1000,     // primera aparicion: al minuto de abrir la pagina
@@ -202,7 +203,9 @@ function playTrack(track) {
   if (!track) return;
   currentTrack = track;
   audio.src = "music/" + encodeURIComponent(track.file);
-  audio.play().catch((err) => {
+  audio.play().then(() => {
+    autoplayGate.classList.add("hidden");
+  }).catch((err) => {
     console.warn("Autoplay bloqueado, esperando interacción:", err);
     autoplayGate.classList.remove("hidden");
   });
@@ -232,7 +235,24 @@ autoplayBtn.addEventListener("click", () => {
 
 setInterval(async () => {
   await loadPlaylist();
+  // Si al arrancar la pagina la playlist estaba vacia (playlist.json
+  // todavia no listo, red lenta, etc.) y recien ahora aparecen temas,
+  // arrancamos la reproduccion aca — si no, el audio quedaba mudo el
+  // resto de la transmision porque nada mas vuelve a llamar a playNext().
+  if (playlist.length > 0 && !currentTrack) {
+    playNext();
+  }
 }, CONFIG.playlistRefreshMs);
+
+// Red de seguridad: si el audio quedo pausado por cualquier motivo
+// (autoplay bloqueado, error transitorio del navegador) reintentamos
+// solos cada rato, en vez de quedar mudos el resto de la transmision
+// esperando un click que en OBS nunca va a llegar.
+setInterval(() => {
+  if (currentTrack && audio.paused) {
+    audio.play().then(() => autoplayGate.classList.add("hidden")).catch(() => {});
+  }
+}, 15000);
 
 // ---------------- Reloj ----------------
 
@@ -308,8 +328,13 @@ function showNewsItem(item) {
   newsText.textContent = item.text || "";
 
   if (item.link) {
-    newsQr.src = qrUrlFor(item.link);
+    // Si el QR no carga (api.qrserver.com caido/lento/bloqueado),
+    // ocultamos toda la fila en vez de mostrar el icono de imagen rota
+    // a pantalla completa.
+    newsQr.onerror = () => { newsScreen.classList.add("no-link"); };
+    newsQr.onload = () => { newsScreen.classList.remove("no-link"); };
     newsScreen.classList.remove("no-link");
+    newsQr.src = qrUrlFor(item.link);
   } else {
     newsScreen.classList.add("no-link");
   }
@@ -340,6 +365,8 @@ async function runNewsBlock() {
       newsImage.onload = null;
       newsImage.onerror = null;
       newsImage.removeAttribute("src");
+      newsQr.onload = null;
+      newsQr.onerror = null;
       newsQr.removeAttribute("src");
     }
   }
@@ -369,6 +396,17 @@ bgVideo.volume = 0;
 let backgrounds = [];
 let currentBackground = null;
 let bgAdvanceTimer = null;
+
+// Cuantas veces fallo cada archivo consecutivamente en esta sesion. Si
+// un archivo esta roto o hay un corte de red, esto evita reintentar en
+// loop rapido para siempre: despues de un par de fallos se lo saltea
+// hasta el proximo refresh de la lista (que le da otra chance a todos).
+let backgroundFailCounts = {};
+const MAX_BACKGROUND_FAILS = 2;
+
+function recordBackgroundFailure(file) {
+  backgroundFailCounts[file] = (backgroundFailCounts[file] || 0) + 1;
+}
 
 function backgroundType(fileOrUrl) {
   // Corta query string / hash antes de mirar la extension (una URL
@@ -455,17 +493,25 @@ async function loadBackgrounds() {
   const externalItems = await loadExternalBackgrounds();
 
   backgrounds = localItems.concat(externalItems);
+  backgroundFailCounts = {}; // le damos otra chance a todos en cada refresh
 }
 
 function pickNextBackground() {
   if (backgrounds.length === 0) return null;
-  if (backgrounds.length === 1) return backgrounds[0];
 
-  let pool = backgrounds;
+  // Evitamos elegir archivos que vienen fallando en loop (roto, o un
+  // corte de red puntual) hasta el proximo refresh de la lista.
+  const usable = backgrounds.filter(
+    (b) => (backgroundFailCounts[b.file] || 0) < MAX_BACKGROUND_FAILS
+  );
+  const pool = usable.length > 0 ? usable : backgrounds;
+  if (pool.length === 1) return pool[0];
+
+  let filtered = pool;
   if (currentBackground) {
-    pool = backgrounds.filter((b) => b.file !== currentBackground.file);
+    filtered = pool.filter((b) => b.file !== currentBackground.file);
   }
-  return shuffle(pool)[0];
+  return shuffle(filtered.length > 0 ? filtered : pool)[0];
 }
 
 function advanceBackground() {
@@ -493,16 +539,30 @@ function showBackground(item) {
     bgVideo.muted = true;
     bgVideo.volume = 0;
     bgVideo.onended = advanceBackground;
-    bgVideo.onerror = () => setTimeout(advanceBackground, 1000);
+    bgVideo.onerror = () => {
+      recordBackgroundFailure(item.file);
+      setTimeout(advanceBackground, 1500);
+    };
     bgVideo.src = src;
     bgVideo.currentTime = 0;
-    bgVideo.play().catch(() => setTimeout(advanceBackground, 1000));
+    bgVideo.play().catch(() => {
+      recordBackgroundFailure(item.file);
+      setTimeout(advanceBackground, 1500);
+    });
     bgVideo.classList.add("active");
+    // Watchdog: si el video se cuelga a mitad de reproduccion (nunca
+    // dispara "ended" ni "error"), no queremos que el fondo quede
+    // congelado ahi para siempre. advanceBackground() ya cancela este
+    // timer si "ended" llega antes.
+    bgAdvanceTimer = setTimeout(advanceBackground, CONFIG.maxVideoDurationMs);
   } else {
     bgVideo.pause();
     bgVideo.classList.remove("active");
     bgImage.onload = () => bgImage.classList.add("active");
-    bgImage.onerror = () => setTimeout(advanceBackground, 500);
+    bgImage.onerror = () => {
+      recordBackgroundFailure(item.file);
+      setTimeout(advanceBackground, 1000);
+    };
     bgImage.src = src;
     bgAdvanceTimer = setTimeout(advanceBackground, CONFIG.backgroundImageDurationMs);
   }

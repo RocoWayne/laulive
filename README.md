@@ -333,6 +333,34 @@ ningún script.
 | `qrSize` | tamaño en px del QR generado |
 | `backgroundsRefreshMs` | cada cuánto relee la carpeta `backgrounds/` |
 | `backgroundImageDurationMs` | cuánto queda cada imagen de fondo antes de pasar a la siguiente |
+| `maxVideoDurationMs` | watchdog: si un video de fondo se cuelga sin terminar, fuerza el avance después de esto |
+
+## Resiliencia para transmisiones largas (24/7)
+
+Pensado para no necesitar reinicios manuales de OBS. Salvo la caída
+del audio (única que no tiene forma de resolverse sin un click en un
+navegador normal, ver más abajo), la página se auto-recupera sola de:
+
+- **Música que no arranca** porque `playlist.json` estaba vacío/lento
+  al abrir la página: en cuanto el siguiente refresco (cada 2 min)
+  encuentra temas, arranca la reproducción sola.
+- **Audio pausado** por cualquier motivo (bloqueo de autoplay
+  transitorio, error puntual): se reintenta solo cada 15 segundos.
+  Si el navegador bloquea el autoplay de forma persistente (fuera de
+  OBS, o sin la opción "Controlar audio a través de OBS" tildada),
+  esto no lo puede resolver solo — ahí sí hace falta el click único en
+  "Iniciar", como está documentado en la sección de OBS.
+- **Fondos o canciones rotas**: si un archivo puntual falla, se
+  saltea a la siguiente en vez de trabarse. Si un archivo de fondo
+  falla repetidamente (roto, o un corte de red), se lo deja de
+  intentar hasta el próximo refresco de la carpeta en vez de
+  reintentar en loop sin parar.
+- **Video de fondo colgado**: si un video nunca termina ni tira error
+  (archivo corrupto a mitad de reproducción), hay un límite de tiempo
+  máximo (`maxVideoDurationMs`) que fuerza pasar al siguiente fondo.
+- **QR o imagen de noticia caídos** (ej. `api.qrserver.com` lento):
+  se ocultan en vez de mostrar el ícono de imagen rota en pantalla
+  completa.
 
 ## Ideas para seguir sumando
 

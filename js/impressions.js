@@ -55,6 +55,10 @@ function recordBackgroundImpression(file) {
   saveImpressionsData(data);
 }
 
+// Tope de periodos archivados (evita que localStorage crezca sin
+// limite en un despliegue de meses/anios reiniciando seguido).
+const MAX_IMPRESSIONS_HISTORY = 104; // ~2 anios reiniciando una vez por semana
+
 // Archiva el periodo actual en el historial y arranca uno nuevo en cero.
 // Usar, por ejemplo, cada vez que se cierra una semana de reporte.
 function resetImpressionsPeriod() {
@@ -66,6 +70,9 @@ function resetImpressionsPeriod() {
       periodEnd: new Date().toISOString(),
       counts: data.counts,
     });
+    if (data.history.length > MAX_IMPRESSIONS_HISTORY) {
+      data.history.length = MAX_IMPRESSIONS_HISTORY;
+    }
   }
   data.periodStart = new Date().toISOString();
   data.counts = {};

@@ -11,6 +11,9 @@ const CONFIG = {
   newsRssUrl: "news/rss.json",     // noticias auto-generadas desde el RSS del sitio (opcional)
   birthdaysDir: "news/birthdays",  // efemerides: un archivo por mes (01.json..12.json), opcional
   birthdaysCategory: "CUMPLEAÑOS", // tag que se muestra para estas noticias
+  birthdayFirstDelayMs: 5 * 60 * 1000,  // primer chequeo: a los 5 min de abrir la pagina
+  birthdayIntervalMs: 60 * 60 * 1000,   // despues, minimo cada 1 hora (si no hay ninguno, no se muestra nada)
+  birthdayDisplayMs: 20 * 1000,          // cuanto queda visible cada cumpleaños
   backgroundsScanUrl: "backgrounds/playlist.php", // metodo principal: escanea /backgrounds en vivo (requiere PHP)
   backgroundsDirUrl: "backgrounds/",              // respaldo: listado de directorio del server (sin PHP)
   backgroundsPlaylistUrl: "backgrounds/playlist.json", // respaldo si no hay PHP ni listado
@@ -315,10 +318,12 @@ async function fetchNewsFile(url) {
 }
 
 // Efemerides: lee SOLO el archivo del mes actual (news/birthdays/MM.json)
-// y devuelve las entradas cuyo "day" coincide con el dia de hoy,
-// convertidas al mismo formato que una noticia (sin link -> sin QR).
-// Al recalcularse en cada refresco de noticias, el cambio de dia se
-// refleja solo, sin ninguna logica extra de reloj/medianoche.
+// y devuelve las entradas cuyo "day" coincide con el dia de hoy. Tienen
+// su propio bloque aparte (ver runBirthdayBlock), no se mezclan con la
+// rotacion de noticias: asi no se repiten cada 15 min si hay pocos, y
+// se puede garantizar que aparezcan al menos una vez por hora. Al
+// recalcularse en cada chequeo, el cambio de dia se refleja solo, sin
+// ninguna logica extra de reloj/medianoche.
 async function loadTodaysBirthdays() {
   const now = new Date();
   const month = String(now.getMonth() + 1).padStart(2, "0");
@@ -336,16 +341,15 @@ async function loadTodaysBirthdays() {
 }
 
 async function loadNews() {
-  const [manual, rss, birthdays] = await Promise.all([
+  const [manual, rss] = await Promise.all([
     fetchNewsFile(CONFIG.newsUrl),
     fetchNewsFile(CONFIG.newsRssUrl),
-    loadTodaysBirthdays(),
   ]);
   // Si una noticia cargada a mano ya cubre el mismo link que trajo el
   // RSS, no la repetimos: la version manual (curada) gana.
   const manualLinks = new Set(manual.map((item) => item && item.link).filter(Boolean));
   const dedupedRss = rss.filter((item) => !item || !item.link || !manualLinks.has(item.link));
-  newsList = manual.concat(dedupedRss, birthdays).filter(isNewsItemFresh);
+  newsList = manual.concat(dedupedRss).filter(isNewsItemFresh);
 }
 
 // Agrega los parametros UTM de tracking al link antes de generar el QR,
@@ -448,6 +452,66 @@ setInterval(async () => {
 }, CONFIG.newsRefreshMs);
 
 setInterval(runNewsBlock, CONFIG.newsIntervalMs);
+
+// ---------------- Bloque de cumpleaños ----------------
+// Pantalla propia (fondo de otro color, ver .birthday-screen), en un
+// horario aparte del de noticias: se chequea al menos cada hora y, si
+// no hay ningun cumpleaños ese dia, no se muestra nada (no tiene
+// sentido "repetir" cuando hay pocos). Comparte con las noticias el
+// flag newsBlockRunning para que nunca se superpongan ni se pisen el
+// slideshow de fondos.
+
+const birthdayScreen = document.getElementById("birthdayScreen");
+const birthdayImage = document.getElementById("birthdayImage");
+const birthdayText = document.getElementById("birthdayText");
+
+function showBirthdayItem(item) {
+  if (item.image) {
+    birthdayImage.onerror = () => { birthdayImage.style.display = "none"; };
+    birthdayImage.onload = () => { birthdayImage.style.display = ""; };
+    birthdayImage.src = item.image;
+  } else {
+    birthdayImage.style.display = "none";
+  }
+  birthdayText.textContent = item.text;
+  birthdayScreen.classList.add("visible");
+  return wait(CONFIG.birthdayDisplayMs);
+}
+
+async function runBirthdayBlock() {
+  if (newsBlockRunning) {
+    // Choco con un bloque de noticias en curso: no esperamos a la
+    // proxima hora entera, reintentamos en un rato corto para
+    // garantizar el "al menos una vez por hora".
+    setTimeout(runBirthdayBlock, 2 * 60 * 1000);
+    return;
+  }
+
+  const todays = await loadTodaysBirthdays();
+  if (todays.length === 0) return; // nada que festejar hoy, no tocamos nada
+
+  newsBlockRunning = true;
+  setSocialTickerVisible(false);
+  pauseBackgroundRotation();
+
+  for (const item of todays) {
+    await showBirthdayItem(item);
+    birthdayScreen.classList.remove("visible");
+    await wait(700);
+    birthdayImage.onload = null;
+    birthdayImage.onerror = null;
+    birthdayImage.removeAttribute("src");
+  }
+
+  newsBlockRunning = false;
+  resumeBackgroundRotation();
+  setSocialTickerVisible(true);
+}
+
+setTimeout(() => {
+  runBirthdayBlock();
+  setInterval(runBirthdayBlock, CONFIG.birthdayIntervalMs);
+}, CONFIG.birthdayFirstDelayMs);
 
 // ---------------- Fondos rotativos (publicidades) ----------------
 // Imagenes y video mudo de /backgrounds, a pantalla completa detras de

@@ -237,11 +237,13 @@ borra.
 
 ### Efemérides ("Hoy cumple años...")
 
-Además de noticias, la rotación puede incluir cumpleaños del día,
-mostrados igual que una noticia (tag **CUMPLEAÑOS**, foto grande,
-texto — sin QR, porque no hay nota que leer). Se cargan en
-`news/birthdays/`, **un archivo por mes** (`01.json` a `12.json`, enero
-a diciembre):
+Los cumpleaños tienen **su propia pantalla y su propio horario**,
+separados de las noticias (no se mezclan en esa rotación): mismo
+mecanismo de pantalla completa, pero con **fondo de otro color**
+(`--birthday-flat-bg` en `css/style.css`, magenta más brillante que
+el burdeos de las noticias) y sin fila de QR (no hay nota que leer).
+Se cargan en `news/birthdays/`, **un archivo por mes** (`01.json` a
+`12.json`, enero a diciembre):
 
 ```json
 [
@@ -256,8 +258,17 @@ a diciembre):
   hace falta borrar el campo, alcanza con omitirlo).
 - La página lee **solo el archivo del mes actual** y se queda con los
   que coincidan con el día de hoy — no hace falta ninguna lógica de
-  medianoche: al pasar la fecha, el siguiente refresco (cada 3
-  minutos) ya muestra el día nuevo.
+  medianoche: al pasar la fecha, el chequeo siguiente ya toma el día
+  nuevo solo.
+- **Frecuencia**: se chequea a los 5 minutos de abrir la página, y
+  después **como mínimo cada 1 hora**. Si ese día no hay ningún
+  cumpleaños cargado, no se muestra nada (no tiene sentido repetir
+  cuando hay pocos). Si el chequeo coincide justo con un bloque de
+  noticias en curso, no espera a la próxima hora entera: reintenta a
+  los 2 minutos para igual garantizar el mínimo de una vez por hora.
+  Se ajusta en `js/app.js` → `CONFIG` → `birthdayIntervalMs`
+  (frecuencia), `birthdayFirstDelayMs` (primer chequeo) y
+  `birthdayDisplayMs` (cuánto quedan visibles).
 - **Importante sobre las fechas**: no cargues cumpleaños "a ojo" — una
   fecha de nacimiento incorrecta de una persona real, mostrada en
   vivo, es un error real. Cargalos verificados, igual que hacés con

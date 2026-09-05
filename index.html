@@ -62,6 +62,16 @@
     </div>
   </section>
 
+  <!-- Pantalla de cumpleaños: mismo mecanismo que las noticias (clase
+       "news-screen" reutiliza todo el layout/transiciones), pero con
+       su propio color de fondo y sin fila de QR (no aplica). Corre en
+       un bloque aparte, con su propio horario (ver js/app.js). -->
+  <section class="news-screen birthday-screen" id="birthdayScreen">
+    <div class="news-tag">CUMPLEAÑOS</div>
+    <img id="birthdayImage" class="news-image" src="" alt="">
+    <div class="news-text" id="birthdayText"></div>
+  </section>
+
   <!-- Popup de suscripción: desciende desde arriba al centro cada
        tanto, invitando a suscribirse. -->
   <div class="subscribe-popup" id="subscribePopup">

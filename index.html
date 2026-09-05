@@ -72,6 +72,21 @@
     <div class="news-text" id="birthdayText"></div>
   </section>
 
+  <!-- Pantalla de opinión de la audiencia: audios que mandan los
+       espectadores, reproducidos en momentos especiales. Mismo
+       mecanismo que noticias/cumpleaños (clase "news-screen"), con su
+       propio color y una animación de "ondas de audio" en vez de foto.
+       Mientras suena, la música de fondo baja de volumen (no se pausa)
+       — ver runOpinionBlock() en js/app.js. -->
+  <section class="news-screen opinion-screen" id="opinionScreen">
+    <div class="news-tag">OPINIÓN DE LA AUDIENCIA</div>
+    <div class="opinion-waveform" id="opinionWaveform" aria-hidden="true">
+      <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <div class="opinion-name" id="opinionName"></div>
+    <div class="news-text" id="opinionTopic"></div>
+  </section>
+
   <!-- Popup de suscripción: desciende desde arriba al centro cada
        tanto, invitando a suscribirse. -->
   <div class="subscribe-popup" id="subscribePopup">
@@ -128,6 +143,11 @@
   </div>
 
   <audio id="audio" preload="auto"></audio>
+
+  <!-- Audio de opinión de la audiencia en reproducción (separado del
+       de música: este SÍ debe sonar, y no participa del watchdog ni
+       de la playlist). -->
+  <audio id="opinionAudio" preload="none"></audio>
 
   <div class="autoplay-gate" id="autoplayGate">
     <div class="autoplay-box">

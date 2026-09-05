@@ -377,7 +377,44 @@ link/QR — se puede agregar el día que haya un canal/link definido).
   - `css/style.css` → `.subscribe-popup` (usa el gradiente de acento
     de la marca por defecto)
 
-## 5. Ticker de redes
+## 5. Opiniones de la audiencia (audios de usuarios)
+
+Invita a los espectadores a mandar un audio corto opinando sobre algún
+tema, y lo reproduce en un bloque a pantalla completa propio, con su
+propio color (`--opinion-flat-bg`) y una animación de ondas de audio en
+vez de foto. Mientras suena, la música de fondo **no se pausa**: solo
+se le baja el volumen ("ducking") y se restaura sola al terminar.
+
+- **Cómo cargar un audio nuevo**: mismo mecanismo manual que
+  noticias/cumpleaños — te mandan el audio (WhatsApp, mail, etc.), vos
+  subís el archivo a `audios/` y agregás una entrada en
+  `audios/audios.json`:
+  ```json
+  [
+    { "file": "juan-sobre-el-escandalo.mp3", "name": "Juan", "topic": "El escándalo de la semana" }
+  ]
+  ```
+  `name` y `topic` son opcionales (si falta `topic`, se muestra solo
+  el nombre/título genérico).
+- Aparece **a los 8 minutos** de abrir la página, y después **cada 20
+  minutos** — si en ese momento hay una noticia o un cumpleaños en
+  pantalla, se salta esa aparición y vuelve a intentar en el siguiente
+  turno (igual que el popup de suscripción). Si no hay ningún audio
+  cargado, no pasa nada.
+- No repite el mismo audio dos veces seguidas si hay más de uno
+  cargado.
+- La música baja a un **18% del volumen** mientras dura el audio de
+  opinión (se detecta cuando termina solo, con un tope de 3 minutos
+  por si un archivo nunca dispara el evento de fin) y vuelve a subir
+  gradualmente al terminar.
+- Tiempos, volumen y textos se ajustan en:
+  - `js/app.js` → `CONFIG` → `opinionFirstDelayMs`, `opinionIntervalMs`,
+    `opinionMaxDurationMs`, `duckedVolume`, `duckFadeMs`,
+    `restoreFadeMs`
+  - `css/style.css` → `.opinion-screen`, `.opinion-waveform`,
+    `--opinion-flat-bg`, `--opinion-accent`
+
+## 6. Ticker de redes
 
 Una franja al pie de la pantalla con un scroll infinito mostrando los
 íconos de Facebook, Twitter/X e Instagram. Pensada para no competir
@@ -398,7 +435,7 @@ quedar tapado por la franja).
   `setSocialTickerVisible()`, llamada al principio y al final de
   `runNewsBlock()`.
 
-## 6. Probarlo / correrlo
+## 7. Probarlo / correrlo
 
 Los `fetch()` a los `.json` necesitan que la página se sirva por HTTP,
 no abierta como archivo local (`file://`). Desde la carpeta del
@@ -411,7 +448,7 @@ python3 -m http.server 8080
 Y abrís `http://localhost:8080/index.html` en el navegador para
 probarlo antes de meterlo en OBS.
 
-## 7. Publicarlo en GitHub Pages
+## 8. Publicarlo en GitHub Pages
 
 Esta es la forma en la que estamos usando el proyecto por ahora, así
 no depende de tener un servidor corriendo en la PC de streaming:
@@ -434,7 +471,7 @@ Pages no soporta usuario/contraseña (Basic Auth) por su cuenta; si más
 adelante eso importa, es otro argumento a favor de migrar a un hosting
 propio como se explica en `HOSTING.md`.
 
-## 8. Agregarlo en OBS
+## 9. Agregarlo en OBS
 
 1. En OBS: **Fuentes → Agregar → Fuente de navegador**.
 2. URL: la de GitHub Pages (`https://tu-usuario.github.io/laulive/`) o,
@@ -447,7 +484,7 @@ propio como se explica en `HOSTING.md`.
    la opción de OBS que permite reproducción de medios sin interacción,
    o simplemente refrescá la fuente una vez al agregarla.
 
-## 9. Más adelante: hosting propio (ej. WordPress)
+## 10. Más adelante: hosting propio (ej. WordPress)
 
 Cuando llegue el momento de migrar a un hosting propio (por ejemplo,
 una carpeta dentro del hosting de WordPress), ver
@@ -470,6 +507,9 @@ ningún script.
 | `backgroundsRefreshMs` | cada cuánto relee la carpeta `backgrounds/` |
 | `backgroundImageDurationMs` | cuánto queda cada imagen de fondo antes de pasar a la siguiente |
 | `maxVideoDurationMs` | watchdog: si un video de fondo se cuelga sin terminar, fuerza el avance después de esto |
+| `opinionIntervalMs` | cada cuánto se dispara un bloque de opinión de la audiencia |
+| `opinionMaxDurationMs` | watchdog: tope máximo por si un audio de opinión nunca dispara "ended" |
+| `duckedVolume` | a qué volumen (0-1) baja la música mientras suena un audio de opinión |
 
 ## Resiliencia para transmisiones largas (24/7)
 
@@ -497,6 +537,10 @@ navegador normal, ver más abajo), la página se auto-recupera sola de:
 - **QR o imagen de noticia caídos** (ej. `api.qrserver.com` lento):
   se ocultan en vez de mostrar el ícono de imagen rota en pantalla
   completa.
+- **Audio de opinión de la audiencia colgado**: si un archivo nunca
+  dispara "ended" ni "error" (roto, corte de red), hay un tope máximo
+  (`opinionMaxDurationMs`) que fuerza cerrar el bloque y devolver el
+  volumen de la música a la normalidad.
 
 ## Ideas para seguir sumando
 

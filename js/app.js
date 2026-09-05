@@ -32,6 +32,15 @@ const CONFIG = {
   subscribeFirstDelayMs: 60 * 1000,     // primera aparicion: al minuto de abrir la pagina
   subscribeIntervalMs: 10 * 60 * 1000,  // despues, cada 10 minutos
   subscribeDisplayMs: 15 * 1000,        // cuanto queda visible cada vez
+  opinionsUrl: "audios/audios.json",  // audios de opinion de la audiencia, cargados a mano
+  audiosDirUrl: "audios/",            // carpeta donde estan los archivos de audio subidos
+  opinionsRefreshMs: 5 * 60 * 1000,   // releer audios.json cada 5 min
+  opinionFirstDelayMs: 8 * 60 * 1000, // primera aparicion: a los 8 min de abrir la pagina
+  opinionIntervalMs: 20 * 60 * 1000,  // despues, cada 20 minutos (si hay audios cargados)
+  opinionMaxDurationMs: 3 * 60 * 1000, // watchdog: por si el audio nunca dispara "ended"
+  duckedVolume: 0.18,   // volumen de la musica mientras suena un audio de opinion
+  duckFadeMs: 400,      // que tan rapido baja el volumen al arrancar el audio
+  restoreFadeMs: 1500,  // que tan gradual vuelve a subir la musica al terminar
 };
 
 const VALID_AUDIO_EXT = [".mp3", ".m4a", ".ogg", ".wav", ".flac"];
@@ -513,6 +522,128 @@ setTimeout(() => {
   setInterval(runBirthdayBlock, CONFIG.birthdayIntervalMs);
 }, CONFIG.birthdayFirstDelayMs);
 
+// ---------------- Opiniones de la audiencia ----------------
+// Audios que mandan los espectadores (opinando sobre algun tema),
+// cargados a mano en /audios + audios/audios.json (mismo patron
+// manual que las noticias). Se reproducen en un bloque a pantalla
+// completa propio, en un horario fijo tipo popup de suscripcion, y
+// mientras suenan la musica de fondo NO se pausa: solo se le baja el
+// volumen ("ducking") y se restaura solo al terminar.
+
+const opinionScreen = document.getElementById("opinionScreen");
+const opinionName = document.getElementById("opinionName");
+const opinionTopic = document.getElementById("opinionTopic");
+const opinionAudio = document.getElementById("opinionAudio");
+
+let opinionsList = [];
+let lastOpinionFile = null;
+
+// Lee audios/audios.json (array, o { opinions: [...] }). Si no existe
+// o falla, devuelve una lista vacia: sin audios cargados, el bloque
+// simplemente no hace nada (igual que con los cumpleaños).
+async function fetchOpinionsFile(url) {
+  try {
+    const res = await fetch(url + "?t=" + Date.now());
+    if (!res.ok) return [];
+    const data = await res.json();
+    const list = Array.isArray(data) ? data : data.opinions || [];
+    return list.filter((item) => item && item.file);
+  } catch {
+    return [];
+  }
+}
+
+async function loadOpinions() {
+  opinionsList = await fetchOpinionsFile(CONFIG.opinionsUrl);
+}
+
+function pickNextOpinion() {
+  if (opinionsList.length === 0) return null;
+  if (opinionsList.length === 1) return opinionsList[0];
+  const pool = opinionsList.filter((o) => o.file !== lastOpinionFile);
+  return shuffle(pool.length > 0 ? pool : opinionsList)[0];
+}
+
+// Sube o baja gradualmente el volumen de un <audio> a lo largo de
+// durationMs, sin cortar en seco.
+function fadeVolume(el, from, to, durationMs) {
+  return new Promise((resolve) => {
+    const steps = 20;
+    const stepMs = durationMs / steps;
+    el.volume = from;
+    let i = 0;
+    const timer = setInterval(() => {
+      i++;
+      el.volume = from + (to - from) * (i / steps);
+      if (i >= steps) {
+        clearInterval(timer);
+        el.volume = to;
+        resolve();
+      }
+    }, stepMs);
+  });
+}
+
+// Espera a que termine el audio de opinion (o a que falle), con un
+// tope maximo por las dudas de que "ended" nunca llegue.
+function waitForOpinionAudio() {
+  return new Promise((resolve) => {
+    const finish = () => {
+      opinionAudio.onended = null;
+      opinionAudio.onerror = null;
+      clearTimeout(watchdog);
+      resolve();
+    };
+    opinionAudio.onended = finish;
+    opinionAudio.onerror = finish;
+    const watchdog = setTimeout(finish, CONFIG.opinionMaxDurationMs);
+  });
+}
+
+async function runOpinionBlock() {
+  // Igual que el popup de suscripcion: si coincide con un bloque de
+  // noticias/cumpleaños en pantalla completa, se salta esta vez y
+  // vuelve a intentar en el proximo turno.
+  if (newsBlockRunning) return;
+
+  const item = pickNextOpinion();
+  if (!item) return; // no hay audios cargados todavia
+
+  lastOpinionFile = item.file;
+  newsBlockRunning = true;
+  setSocialTickerVisible(false);
+  pauseBackgroundRotation();
+
+  opinionName.textContent = item.name ? `Opinión de ${item.name}` : "Opinión de la audiencia";
+  opinionTopic.textContent = item.topic || "";
+  opinionScreen.classList.add("visible");
+
+  await fadeVolume(audio, audio.volume || 1, CONFIG.duckedVolume, CONFIG.duckFadeMs);
+
+  opinionAudio.src = CONFIG.audiosDirUrl + encodeURIComponent(item.file);
+  const played = opinionAudio.play().then(() => waitForOpinionAudio()).catch(() => {});
+  await played;
+
+  await fadeVolume(audio, audio.volume || CONFIG.duckedVolume, 1, CONFIG.restoreFadeMs);
+
+  opinionScreen.classList.remove("visible");
+  opinionAudio.removeAttribute("src");
+  await wait(700); // pausa breve, coincide con la transicion CSS (igual que noticias/cumpleaños)
+
+  newsBlockRunning = false;
+  resumeBackgroundRotation();
+  setSocialTickerVisible(true);
+}
+
+setInterval(async () => {
+  await loadOpinions();
+}, CONFIG.opinionsRefreshMs);
+
+setTimeout(() => {
+  runOpinionBlock();
+  setInterval(runOpinionBlock, CONFIG.opinionIntervalMs);
+}, CONFIG.opinionFirstDelayMs);
+
 // ---------------- Fondos rotativos (publicidades) ----------------
 // Imagenes y video mudo de /backgrounds, a pantalla completa detras de
 // todo lo demas. Mismo esquema de 3 metodos que la musica: PHP en vivo
@@ -794,7 +925,7 @@ setTimeout(() => {
 // ---------------- Arranque ----------------
 
 (async function start() {
-  await Promise.all([loadPlaylist(), loadNews(), loadBackgrounds()]);
+  await Promise.all([loadPlaylist(), loadNews(), loadBackgrounds(), loadOpinions()]);
   if (playlist.length > 0) playNext();
   else {
     trackTitleEl.textContent = "Sin canciones en /music";

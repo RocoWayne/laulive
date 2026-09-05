@@ -156,6 +156,11 @@ el reloj y el reproductor de música siguen visibles arriba de todo.
 - **`text`**: el titular/texto corto que se muestra. Si es muy largo,
   se corta con puntos suspensivos a partir de la 5ª línea — mejor
   mantenerlo breve (1-2 oraciones).
+- **`category`** (opcional): reemplaza el tag "NOTICIA" de arriba del
+  título por esta palabra (ej. "Gran Hermano", "Bailando"). Las
+  noticias del RSS ya la traen sola —se completa automáticamente con
+  la categoría de WordPress de la nota—; en `news.json` (a mano) es
+  opcional, y si no la ponés queda el tag genérico "NOTICIA".
 - **`link`**: la URL de la noticia completa en el sitio de noticias.
   Se convierte **automáticamente en un código QR** en pantalla (no
   hace falta generar el QR vos). Si una noticia no tiene `link`, se

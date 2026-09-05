@@ -276,6 +276,7 @@ setInterval(tickClock, 15000);
 // carga la pagina, y despues se repite cada CONFIG.newsIntervalMs.
 
 const newsScreen = document.getElementById("newsScreen");
+const newsTag = document.getElementById("newsTag");
 const newsImage = document.getElementById("newsImage");
 const newsText = document.getElementById("newsText");
 const newsQr = document.getElementById("newsQr");
@@ -350,6 +351,11 @@ function setSocialTickerVisible(visible) {
 // Muestra una noticia y espera CONFIG.newsDisplayMs antes de resolver.
 function showNewsItem(item) {
   if (!item || (!item.text && !item.image)) return Promise.resolve();
+
+  // La categoria viene del RSS (<category> de WordPress) cuando la
+  // noticia es automatica; si no hay, o es una noticia cargada a mano
+  // sin categoria, se usa el tag generico de siempre.
+  newsTag.textContent = item.category || "NOTICIA";
 
   // Si la imagen no carga (link roto, 404), la ocultamos en vez de
   // mostrar el ícono de imagen rota.

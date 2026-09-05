@@ -57,6 +57,21 @@ def extract_image(item):
     return None
 
 
+def extract_category(item):
+    """Devuelve la primera categoria "de verdad" del item (WordPress
+    mezcla categorias y tags en <category>, distinguibles por el
+    atributo domain="category" vs domain="post_tag"). Si no encuentra
+    ninguna con ese atributo, usa la primera <category> que haya."""
+    categories = item.findall("category")
+    for cat in categories:
+        if cat.get("domain") == "category" and cat.text:
+            return html.unescape(cat.text.strip())
+    for cat in categories:
+        if cat.text:
+            return html.unescape(cat.text.strip())
+    return None
+
+
 def format_date(pub_date_text):
     """Convierte el pubDate del RSS (formato RFC 822) a AAAA-MM-DD."""
     if not pub_date_text:
@@ -105,6 +120,7 @@ def main():
         news.append({
             "date": format_date(pubdate_el.text if pubdate_el is not None else None),
             "image": extract_image(item),
+            "category": extract_category(item),
             "text": title,
             "link": link,
         })

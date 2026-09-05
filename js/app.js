@@ -9,6 +9,8 @@ const CONFIG = {
   playlistUrl: "music/playlist.json", // overrides de titulo/artista + respaldo si no hay PHP ni listado
   newsUrl: "news/news.json",       // noticias cargadas a mano
   newsRssUrl: "news/rss.json",     // noticias auto-generadas desde el RSS del sitio (opcional)
+  birthdaysDir: "news/birthdays",  // efemerides: un archivo por mes (01.json..12.json), opcional
+  birthdaysCategory: "CUMPLEAÑOS", // tag que se muestra para estas noticias
   backgroundsScanUrl: "backgrounds/playlist.php", // metodo principal: escanea /backgrounds en vivo (requiere PHP)
   backgroundsDirUrl: "backgrounds/",              // respaldo: listado de directorio del server (sin PHP)
   backgroundsPlaylistUrl: "backgrounds/playlist.json", // respaldo si no hay PHP ni listado
@@ -312,16 +314,38 @@ async function fetchNewsFile(url) {
   }
 }
 
+// Efemerides: lee SOLO el archivo del mes actual (news/birthdays/MM.json)
+// y devuelve las entradas cuyo "day" coincide con el dia de hoy,
+// convertidas al mismo formato que una noticia (sin link -> sin QR).
+// Al recalcularse en cada refresco de noticias, el cambio de dia se
+// refleja solo, sin ninguna logica extra de reloj/medianoche.
+async function loadTodaysBirthdays() {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const today = now.getDate();
+
+  const entries = await fetchNewsFile(`${CONFIG.birthdaysDir}/${month}.json`);
+  return entries
+    .filter((entry) => entry && Number(entry.day) === today && entry.name)
+    .map((entry) => ({
+      category: CONFIG.birthdaysCategory,
+      image: entry.photo || null,
+      text: `¡Feliz cumpleaños, ${entry.name}!`,
+      link: null,
+    }));
+}
+
 async function loadNews() {
-  const [manual, rss] = await Promise.all([
+  const [manual, rss, birthdays] = await Promise.all([
     fetchNewsFile(CONFIG.newsUrl),
     fetchNewsFile(CONFIG.newsRssUrl),
+    loadTodaysBirthdays(),
   ]);
   // Si una noticia cargada a mano ya cubre el mismo link que trajo el
   // RSS, no la repetimos: la version manual (curada) gana.
   const manualLinks = new Set(manual.map((item) => item && item.link).filter(Boolean));
   const dedupedRss = rss.filter((item) => !item || !item.link || !manualLinks.has(item.link));
-  newsList = manual.concat(dedupedRss).filter(isNewsItemFresh);
+  newsList = manual.concat(dedupedRss, birthdays).filter(isNewsItemFresh);
 }
 
 // Agrega los parametros UTM de tracking al link antes de generar el QR,

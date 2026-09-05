@@ -18,6 +18,7 @@ music/                 poné acá tus archivos de audio (mp3, m4a, ogg, wav, fla
 music/playlist.json     lista de canciones (se autogenera con el script)
 news/news.json          noticias cargadas a mano
 news/rss.json           noticias auto-generadas desde el RSS de laubfal.com
+news/birthdays/01.json..12.json   efemérides (cumpleaños) por mes, a mano
 news/images/            imágenes locales de noticias (opcional)
 scripts/generate_news_from_rss.py        lee el RSS y actualiza news/rss.json
 .github/workflows/update-news-rss.yml    corre ese script cada 4 horas (ver mas abajo)
@@ -233,6 +234,36 @@ borra.
 - El plazo (30 días) se ajusta en `scripts/prune_news.py` →
   `PRUNE_AFTER_DAYS`. El intervalo (semanal) en
   `.github/workflows/prune-news.yml` (línea `cron`).
+
+### Efemérides ("Hoy cumple años...")
+
+Además de noticias, la rotación puede incluir cumpleaños del día,
+mostrados igual que una noticia (tag **CUMPLEAÑOS**, foto grande,
+texto — sin QR, porque no hay nota que leer). Se cargan en
+`news/birthdays/`, **un archivo por mes** (`01.json` a `12.json`, enero
+a diciembre):
+
+```json
+[
+  { "day": 15, "name": "Nombre Apellido", "photo": "https://ejemplo.com/foto.jpg" },
+  { "day": 22, "name": "Otra Persona" }
+]
+```
+
+- **`day`**: el día del mes (número, sin ceros a la izquierda).
+- **`name`**: se arma solo el texto "¡Feliz cumpleaños, `name`!".
+- **`photo`** (opcional): si no la tenés, se muestra sin foto (no
+  hace falta borrar el campo, alcanza con omitirlo).
+- La página lee **solo el archivo del mes actual** y se queda con los
+  que coincidan con el día de hoy — no hace falta ninguna lógica de
+  medianoche: al pasar la fecha, el siguiente refresco (cada 3
+  minutos) ya muestra el día nuevo.
+- **Importante sobre las fechas**: no cargues cumpleaños "a ojo" — una
+  fecha de nacimiento incorrecta de una persona real, mostrada en
+  vivo, es un error real. Cargalos verificados, igual que hacés con
+  las noticias.
+- El tag ("CUMPLEAÑOS") se ajusta en `js/app.js` → `CONFIG` →
+  `birthdaysCategory`.
 
 ## 3. Cargar publicidades de fondo
 

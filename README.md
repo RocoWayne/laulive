@@ -21,6 +21,8 @@ news/rss.json           noticias auto-generadas desde el RSS de laubfal.com
 news/images/            imágenes locales de noticias (opcional)
 scripts/generate_news_from_rss.py        lee el RSS y actualiza news/rss.json
 .github/workflows/update-news-rss.yml    corre ese script cada 4 horas (ver mas abajo)
+scripts/prune_news.py                    saca de news.json las noticias de mas de 30 dias
+.github/workflows/prune-news.yml         corre ese script una vez por semana
 backgrounds/            poné acá las publicidades: imagen o video mudo
 backgrounds/playlist.json   lista de fondos locales (se autogenera con el script)
 backgrounds/external.json   fondos alojados afuera del repo (opcional, a mano)
@@ -210,6 +212,22 @@ feed la trae) — sin pisar nunca lo que cargaste a mano en
   `python3 scripts/generate_news_from_rss.py`.
 - El intervalo (4 horas) se ajusta en
   `.github/workflows/update-news-rss.yml` (línea `cron`).
+
+### Limpieza automática de `news.json`
+
+`news/news.json` (las noticias cargadas a mano) no tiene un tope de
+cantidad como `rss.json` — crece con cada noticia que se agrega y
+nunca se achica solo. Para que no crezca sin límite con los años, un
+GitHub Action corre **una vez por semana** y saca físicamente del
+archivo las noticias de **más de 30 días** (bastante más que los 7
+días que ya usa la página para dejar de mostrarlas, así no se toca
+nada que todavía pudiera importar). Una noticia sin `date` nunca se
+borra.
+
+- Se puede correr a mano con `python3 scripts/prune_news.py`.
+- El plazo (30 días) se ajusta en `scripts/prune_news.py` →
+  `PRUNE_AFTER_DAYS`. El intervalo (semanal) en
+  `.github/workflows/prune-news.yml` (línea `cron`).
 
 ## 3. Cargar publicidades de fondo
 

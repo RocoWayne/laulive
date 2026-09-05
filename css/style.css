@@ -131,6 +131,11 @@ html,body{
   border-radius:22px;
   backdrop-filter:blur(10px);
   box-shadow:0 12px 40px rgba(0,0,0,0.45);
+  transition:bottom .4s ease;
+}
+/* Cuando el ticker de redes esta visible, el reproductor sube para no taparlo */
+body.ticker-visible .player{
+  bottom:calc(32px + 52px);
 }
 
 .eq{
@@ -371,4 +376,70 @@ html,body{
   font-size:15px;
   font-weight:700;
   cursor:pointer;
+}
+
+/* ---------- Ticker inferior de redes ----------
+   Visible solo cuando NO hay un bloque de noticias en pantalla
+   (js/app.js hace toggle de body.ticker-visible). Franja completa al
+   pie de la pantalla, con un marquee infinito de iconos + texto. */
+.social-ticker{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  z-index:9; /* debajo del popup de suscripcion (15) y de player/brand/clock (10) */
+  height:52px;
+  overflow:hidden;
+  background:linear-gradient(90deg, rgba(20,4,14,0.92), rgba(38,7,24,0.92));
+  border-top:1px solid var(--card-border);
+  backdrop-filter:blur(8px);
+  opacity:0;
+  transform:translateY(100%);
+  transition:opacity .4s ease, transform .4s ease;
+  pointer-events:none;
+}
+body.ticker-visible .social-ticker{
+  opacity:1;
+  transform:translateY(0);
+}
+.social-ticker-track{
+  display:flex;
+  align-items:center;
+  height:100%;
+  width:max-content;
+  animation:ticker-scroll 26s linear infinite;
+  animation-play-state:paused; /* solo corre mientras esta visible, ahorra CPU */
+}
+body.ticker-visible .social-ticker-track{
+  animation-play-state:running;
+}
+@keyframes ticker-scroll{
+  from{transform:translateX(0);}
+  to{transform:translateX(-50%);}
+}
+.social-ticker-group{
+  display:flex;
+  align-items:center;
+  flex-shrink:0;
+}
+.social-ticker-item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:0 20px;
+  color:var(--text);
+  font-size:15px;
+  font-weight:600;
+  letter-spacing:.3px;
+  white-space:nowrap;
+}
+.social-ticker-item svg{
+  width:20px;
+  height:20px;
+  flex-shrink:0;
+  color:var(--accent-3);
+}
+.social-ticker-sep{
+  color:var(--text-dim);
+  font-size:14px;
 }

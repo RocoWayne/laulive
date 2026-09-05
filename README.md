@@ -312,7 +312,28 @@ link/QR — se puede agregar el día que haya un canal/link definido).
   - `css/style.css` → `.subscribe-popup` (usa el gradiente de acento
     de la marca por defecto)
 
-## 5. Probarlo / correrlo
+## 5. Ticker de redes
+
+Una franja al pie de la pantalla con un scroll infinito mostrando los
+íconos de Facebook, Twitter/X e Instagram. Pensada para no competir
+con las noticias: **solo aparece cuando NO hay un bloque de noticias
+en pantalla** — se oculta sola apenas arranca un bloque, y vuelve a
+aparecer al terminar (el reproductor de música sube un poco para no
+quedar tapado por la franja).
+
+- El texto por ahora es genérico ("Seguinos en Facebook / Twitter /
+  Instagram"), sin usuarios ni links, porque no hay handles cargados
+  todavía. Para agregarlos, editá el texto de cada
+  `<span>Seguinos en ...</span>` en `index.html` (hay dos bloques
+  idénticos — el ticker se arma repitiendo el contenido dos veces para
+  que el scroll infinito no se note el corte).
+- Velocidad del scroll y aspecto: `css/style.css` →
+  `.social-ticker-track` (duración de `animation`) y `.social-ticker`.
+- La lógica de mostrar/ocultar está en `js/app.js` →
+  `setSocialTickerVisible()`, llamada al principio y al final de
+  `runNewsBlock()`.
+
+## 6. Probarlo / correrlo
 
 Los `fetch()` a los `.json` necesitan que la página se sirva por HTTP,
 no abierta como archivo local (`file://`). Desde la carpeta del
@@ -325,7 +346,7 @@ python3 -m http.server 8080
 Y abrís `http://localhost:8080/index.html` en el navegador para
 probarlo antes de meterlo en OBS.
 
-## 6. Publicarlo en GitHub Pages
+## 7. Publicarlo en GitHub Pages
 
 Esta es la forma en la que estamos usando el proyecto por ahora, así
 no depende de tener un servidor corriendo en la PC de streaming:
@@ -348,7 +369,7 @@ Pages no soporta usuario/contraseña (Basic Auth) por su cuenta; si más
 adelante eso importa, es otro argumento a favor de migrar a un hosting
 propio como se explica en `HOSTING.md`.
 
-## 7. Agregarlo en OBS
+## 8. Agregarlo en OBS
 
 1. En OBS: **Fuentes → Agregar → Fuente de navegador**.
 2. URL: la de GitHub Pages (`https://tu-usuario.github.io/laulive/`) o,
@@ -361,7 +382,7 @@ propio como se explica en `HOSTING.md`.
    la opción de OBS que permite reproducción de medios sin interacción,
    o simplemente refrescá la fuente una vez al agregarla.
 
-## 8. Más adelante: hosting propio (ej. WordPress)
+## 9. Más adelante: hosting propio (ej. WordPress)
 
 Cuando llegue el momento de migrar a un hosting propio (por ejemplo,
 una carpeta dentro del hosting de WordPress), ver

@@ -340,6 +340,13 @@ function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// Ticker inferior de redes: visible solo mientras NO hay un bloque de
+// noticias en pantalla (ver runNewsBlock). El CSS hace el resto
+// (aparecer/desaparecer y correr el marquee solo cuando esta visible).
+function setSocialTickerVisible(visible) {
+  document.body.classList.toggle("ticker-visible", visible);
+}
+
 // Muestra una noticia y espera CONFIG.newsDisplayMs antes de resolver.
 function showNewsItem(item) {
   if (!item || (!item.text && !item.image)) return Promise.resolve();
@@ -379,6 +386,7 @@ function showNewsItem(item) {
 async function runNewsBlock() {
   if (newsBlockRunning) return;
   newsBlockRunning = true;
+  setSocialTickerVisible(false);
   pauseBackgroundRotation();
 
   if (newsList && newsList.length > 0) {
@@ -402,6 +410,7 @@ async function runNewsBlock() {
 
   newsBlockRunning = false;
   resumeBackgroundRotation();
+  setSocialTickerVisible(true);
 }
 
 setInterval(async () => {

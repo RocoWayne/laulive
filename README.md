@@ -321,12 +321,12 @@ en pantalla** — se oculta sola apenas arranca un bloque, y vuelve a
 aparecer al terminar (el reproductor de música sube un poco para no
 quedar tapado por la franja).
 
-- El texto por ahora es genérico ("Seguinos en Facebook / Twitter /
-  Instagram"), sin usuarios ni links, porque no hay handles cargados
-  todavía. Para agregarlos, editá el texto de cada
-  `<span>Seguinos en ...</span>` en `index.html` (hay dos bloques
-  idénticos — el ticker se arma repitiendo el contenido dos veces para
-  que el scroll infinito no se note el corte).
+- El texto usa `@laubfal` como usuario provisorio en las tres redes,
+  a confirmar. Para actualizarlo (o poner un usuario distinto por
+  red), editá el texto de cada `<span>Seguinos en ...</span>` en
+  `index.html` — hay **dos bloques idénticos** (el ticker se arma
+  repitiendo el contenido dos veces para que el scroll infinito no se
+  note el corte), así que hay que cambiar las 6 apariciones.
 - Velocidad del scroll y aspecto: `css/style.css` →
   `.social-ticker-track` (duración de `animation`) y `.social-ticker`.
 - La lógica de mostrar/ocultar está en `js/app.js` →
